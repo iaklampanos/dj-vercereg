@@ -4,14 +4,13 @@ from rest_framework import routers
 from vercereg import views
 
 router = routers.DefaultRouter()
-router.register(r'rest/gendefs', views.GenericDefViewSet, base_name='gendef')
-router.register(r'rest/genericsigs', views.GenericSigViewSet, base_name='genericsig')
 router.register(r'rest/users', views.UserViewSet, base_name='user')
 router.register(r'rest/groups', views.GroupViewSet, base_name='group')
 router.register(r'rest/workspaces', views.WorkspaceViewSet, base_name='workspace')
 router.register(r'rest/pesigs', views.PESigViewSet, base_name='pesig')
 router.register(r'rest/literalsigs', views.LiteralSigViewSet, base_name='literalsig')
-router.register(r'rest/implementations', views.ImplementationViewSet, base_name='implementation')
+router.register(r'rest/pe_implementations', views.PEImplementationViewSet, base_name='pe_implementation')
+router.register(r'rest/fn_implementations', views.FnImplementationViewSet, base_name='fn_implementation')
 
 
 urlpatterns = patterns('',

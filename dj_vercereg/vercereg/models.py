@@ -23,11 +23,13 @@ class Workspace(models.Model):
   def get_workspace_items(self):
     print '(get_workspace_items)'
     print str(self.genericsig_set)
-    print str(self.genericdef_set)
     return self.genericsig_set
   
   def get_pesigs(self):
     print self.workspaceitem_set
+    
+  class Meta:
+    verbose_name = 'workspace'
 
 class WorkspaceItem(models.Model):
   workspace = models.ForeignKey(Workspace)
@@ -43,21 +45,9 @@ class WorkspaceItem(models.Model):
     return u'[%s] %s.%s' % (self.workspace, self.pckg, self.name)
 
 
-class GenericDef(WorkspaceItem):
-  gendef_description = models.CharField(max_length=200)
+class PESig(WorkspaceItem):
+  description = models.CharField(max_length=200)
   creation_date = models.DateTimeField()
-
-
-class GenericSig(WorkspaceItem):
-  gensig_description = models.CharField(max_length=200)
-  creation_date = models.DateTimeField()
-  gendef = models.ForeignKey(GenericDef)
-
-  # class Meta:
-  #   abstract = True
-
-
-class PESig(GenericSig):
   # Implied connection_set fields due to ForeignKey in Connection relation
   PE_TYPES = (
     ('ABSTRACT', 'Abstract'),
@@ -66,7 +56,10 @@ class PESig(GenericSig):
   )
 
   kind = models.CharField(max_length=10, choices=PE_TYPES)
-
+  
+  class Meta:
+    verbose_name = "PE"
+    verbose_name_plural = "PEs"
 
 class Connection(models.Model):
   CONNECTION_TYPES = (
@@ -89,21 +82,21 @@ class Modifier(models.Model):
   connection = models.ForeignKey(Connection)
 
 
-class LiteralSig(GenericSig):
+class LiteralSig(WorkspaceItem):
+  description = models.CharField(max_length=200)
+  creation_date = models.DateTimeField()
   value = models.CharField(max_length=50, null=True, blank=False)
 
+  class Meta:
+    verbose_name = "literal"
 
-class Implementation(WorkspaceItem):
-  description = models.TextField(null=True, blank=True)
-  code = models.TextField(null=False, blank=True)
-  parent_sig = models.ForeignKey(GenericSig)
-  
-  def short_code(self):
-    return self.code[0:35] + ' [...]'
-
-class FunctionSig(GenericSig):
+class FunctionSig(WorkspaceItem):
+  description = models.CharField(max_length=200)
+  creation_date = models.DateTimeField()
   return_type = models.CharField(max_length=30)
   
+  class Meta:
+    verbose_name = "function"
   
 class FunctionParameters(models.Model):
   param_name = models.CharField(max_length=30)
@@ -111,6 +104,31 @@ class FunctionParameters(models.Model):
   parent_function = models.ForeignKey(FunctionSig)
   
 
-class WorkflowSig(GenericSig):
-  pass
+class WorkflowSig(WorkspaceItem):
+  description = models.CharField(max_length=200)
+  creation_date = models.DateTimeField()
   
+  class Meta:
+    verbose_name = "workflow"
+
+class PEImplementation(WorkspaceItem):
+  description = models.TextField(null=True, blank=True)
+  code = models.TextField(null=False, blank=True)
+  parent_sig = models.ForeignKey(PESig)
+  
+  def short_code(self):
+    return self.code[0:35] + ' [...]'
+  
+  class Meta:
+    verbose_name = "PE implementation"
+
+class FnImplementation(WorkspaceItem):
+  description = models.TextField(null=True, blank=True)
+  code = models.TextField(null=False, blank=True)
+  parent_sig = models.ForeignKey(FunctionSig)
+  
+  def short_code(self):
+    return self.code[0:35] + ' [...]'
+    
+  class Meta:
+    verbose_name = "function implementation"
