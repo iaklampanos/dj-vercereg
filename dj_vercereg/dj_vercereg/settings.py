@@ -50,7 +50,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'reversion',
-    'django_pdb',
+    # 'django_pdb',
     # 'guardian',
 )
 

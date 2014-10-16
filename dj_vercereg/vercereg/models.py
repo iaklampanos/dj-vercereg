@@ -15,6 +15,7 @@ class Workspace(models.Model):
   name = models.CharField(max_length=100)
   owner = models.ForeignKey(User)
   group = models.ForeignKey(Group)
+  description = models.TextField(null=True, blank=True)
   unique_together = (("owner", "name"),)
 
   def __unicode__(self):
@@ -46,7 +47,7 @@ class WorkspaceItem(models.Model):
 
 
 class PESig(WorkspaceItem):
-  description = models.CharField(max_length=200)
+  description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   # Implied connection_set fields due to ForeignKey in Connection relation
   PE_TYPES = (
@@ -83,7 +84,7 @@ class Modifier(models.Model):
 
 
 class LiteralSig(WorkspaceItem):
-  description = models.CharField(max_length=200)
+  description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   value = models.CharField(max_length=50, null=True, blank=False)
 
@@ -91,7 +92,7 @@ class LiteralSig(WorkspaceItem):
     verbose_name = "literal"
 
 class FunctionSig(WorkspaceItem):
-  description = models.CharField(max_length=200)
+  description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   return_type = models.CharField(max_length=30)
   
@@ -105,7 +106,7 @@ class FunctionParameters(models.Model):
   
 
 class WorkflowSig(WorkspaceItem):
-  description = models.CharField(max_length=200)
+  description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   
   class Meta:
