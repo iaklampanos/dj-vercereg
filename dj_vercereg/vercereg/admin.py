@@ -1,38 +1,37 @@
 from django.contrib import admin
 from vercereg.models import GenericDef, GenericSig, Workspace, PESig, LiteralSig, Implementation, FunctionSig
+import reversion
 
-class PESigAdmin(admin.ModelAdmin):
+
+class PESigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('workspace', 'pckg', 'name', 'user', 'implementation_set')
 
-class LiteralSigAdmin(admin.ModelAdmin):
+class LiteralSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   pass
-  
-class ImplementationAdmin(admin.ModelAdmin):
-  pass
-  
-class FunctionSigAdmin(admin.ModelAdmin):
+    
+class FunctionSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   pass
 
-class ImplementationAdmin(admin.ModelAdmin):
+class ImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('parent_sig', 'description', 'short_code')
 
-class GenericSigsInLine(admin.TabularInline):
+class GenericSigsInLine(reversion.VersionAdmin, admin.TabularInline):
   model = GenericSig
   extra = 1
 
-class PESigsInLine(admin.TabularInline):
+class PESigsInLine(reversion.VersionAdmin, admin.TabularInline):
   model = PESig
   extra = 1
 
-class GenericDefsInLine(admin.TabularInline):
+class GenericDefsInLine(reversion.VersionAdmin, admin.TabularInline):
   model = GenericDef
   extra = 1
 
-class WorkspaceAdmin(admin.ModelAdmin):
+class WorkspaceAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('name', 'owner', 'group', )
   inlines = [PESigsInLine, GenericSigsInLine, GenericDefsInLine]
 
-class GenericDefAdmin(admin.ModelAdmin):
+class GenericDefAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   # fields = ['workspace', 'pckg', 'name']
   list_display = ('workspace', 'pckg', 'name')
 

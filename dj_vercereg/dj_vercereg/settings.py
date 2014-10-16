@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'vercereg',
     'rest_framework',
     'rest_framework.authtoken',
+    'reversion'
     # 'guardian',
 )
 
