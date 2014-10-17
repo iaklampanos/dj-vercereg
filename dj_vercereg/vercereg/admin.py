@@ -7,6 +7,25 @@ class PEImplInLine(admin.StackedInline):
   model = PEImplementation
   extra = 1
   
+  # def get_form(self, request, obj=None, **kwargs):
+  #   self.exclude = []
+  #   self.exclude.append('workspace')
+  #   return super(PEImplInLine, self).get_form(request, obj, **kwargs)
+  
+  def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+    field = super(PEImplInLine, self).formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    if db_field.name == 'workspace':
+      print ' >1> ' + str(db_field.name)
+      print ' *2* ' + str(request._obj_.workspace)
+      print ' $3$ ' + str(field)
+      if request._obj_ is not None:
+        field.queryset = field.queryset.none()
+        field.queryset = field.queryset.filter(workspace__exact = request._obj_.workspace)
+      else:
+        field.queryset = field.queryset.none()
+    return field
+  
 class FnImplInLine(admin.StackedInline):
   model = FnImplementation
   extra = 1
@@ -18,6 +37,11 @@ class ConnectionInLine(admin.TabularInline):
 class PESigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
   inlines = [ConnectionInLine, PEImplInLine,]
+  
+  def get_form(self, request, obj=None, **kwargs):
+    # just save obj reference for future processing in Inline
+    request._obj_ = obj
+    return super(PESigAdmin, self).get_form(request, obj, **kwargs)
   
 class LiteralSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('workspace', 'pckg', 'name', 'user', 'description', 'value')
@@ -35,6 +59,8 @@ class FnImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
 class PESigsInLine(admin.TabularInline):
   model = PESig
   extra = 1
+  
+  
 
 class FunctionSigsInLine(admin.TabularInline):
   model = FunctionSig
