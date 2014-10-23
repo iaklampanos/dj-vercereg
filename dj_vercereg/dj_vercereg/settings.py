@@ -40,6 +40,7 @@ ALLOWED_HOSTS = []
 # )
 
 INSTALLED_APPS = (
+    'suit',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,7 +52,7 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'reversion',
     # 'django_pdb',
-    # 'guardian',
+    'guardian',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -104,7 +105,7 @@ STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
    'DEFAULT_AUTHENTICATION_CLASSES': (
-       'rest_framework.authentication.BasicAuthentication',
+       # 'rest_framework.authentication.BasicAuthentication',
        'rest_framework.authentication.SessionAuthentication',
        'rest_framework.authentication.TokenAuthentication',
    ),
@@ -115,9 +116,17 @@ REST_FRAMEWORK = {
 }
 
 # For django guardian: ########################################
-# AUTHENTICATION_BACKENDS = (
-#     'django.contrib.auth.backends.ModelBackend', # default
-#     'guardian.backends.ObjectPermissionBackend',
-# )
-# ANONYMOUS_USER_ID = -1
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # default
+    'guardian.backends.ObjectPermissionBackend',
+)
+ANONYMOUS_USER_ID = -1
 ###############################################################
+
+from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
+
+TEMPLATE_CONTEXT_PROCESSORS = TCP + (
+    'django.core.context_processors.request',
+)
+
+

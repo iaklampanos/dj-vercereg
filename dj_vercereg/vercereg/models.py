@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
+from vercereg.separated_values_field import SeparatedValuesField
 
 @receiver(post_save, sender=User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -31,6 +32,10 @@ class Workspace(models.Model):
     
   class Meta:
     verbose_name = 'workspace'
+    # permissions = (
+    #   ('view_workspace', 'Can view and clone the contents of a workspace.'),
+    #   ('write_workspace', 'Can view and alter the contents of a workspace.')
+    # )
 
 class WorkspaceItem(models.Model):
   workspace = models.ForeignKey(Workspace)
@@ -62,25 +67,34 @@ class PESig(WorkspaceItem):
     verbose_name = "PE"
     verbose_name_plural = "PEs"
 
-class Connection(models.Model):
+class Connection(WorkspaceItem):
   CONNECTION_TYPES = (
     ('IN', 'In'),
     ('OUT', 'Out')
   )
 
   kind = models.CharField(max_length=3, choices=CONNECTION_TYPES)
-  name = models.CharField(max_length=30)
+  # name = models.CharField(max_length=30)
   s_type = models.CharField(max_length=30, null=True, blank=True)
   d_type = models.CharField(max_length=30, null=True, blank=True)
   comment = models.CharField(max_length=200, null=True, blank=True)
   is_array = models.BooleanField(default=False)
   pesig = models.ForeignKey(PESig)
+  modifiers = SeparatedValuesField(null=True, blank=True)
 
   # ForeignKey in Modifier would imply that there is a modifier_set accessible from Connection
 
-class Modifier(models.Model):
-  value = models.CharField(max_length=30)
-  connection = models.ForeignKey(Connection)
+# class Modifier(models.Model):
+#   value = models.CharField(max_length=30)
+#   connection = models.ForeignKey(Connection)
+
+  def __unicode__(self):
+    tmpmods = []
+    if self.modifiers and len(self.modifiers)>0:
+      tmpmods = [str(x).encode('utf-8') for x in self.modifiers]
+    print '>> ' + str(tmpmods)
+    mods = '(%s)' % (':'.join(tmpmods))
+    return u'[%s] %s.%s (%s|%s)' % (self.workspace, self.pckg, self.name, self.kind, mods)
 
 
 class LiteralSig(WorkspaceItem):

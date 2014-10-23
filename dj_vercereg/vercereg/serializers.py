@@ -28,7 +28,7 @@ class FnImplementationSerializer(serializers.HyperlinkedModelSerializer):
 class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
   #name = serializers.CharField(source='name')
   #owner = serializers.CharField(source='owner')
-  implementation_set = serializers.HyperlinkedRelatedField(many=True, view_name='implementation-detail')
+  #implementation_set = serializers.HyperlinkedRelatedField(many=True, view_name='implementation-detail')
   
   class Meta:
     model = Workspace

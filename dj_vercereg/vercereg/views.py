@@ -13,6 +13,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.response import Response
 from rest_framework import permissions
+from rest_framework.filters import DjangoObjectPermissionsFilter
+from vercereg.permissions import CustomObjectPermissions
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -31,16 +33,24 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
   
   queryset = Workspace.objects.all()
-  base_name = 'workspace'
   serializer_class = WorkspaceSerializer
+  filter_backends = (DjangoObjectPermissionsFilter,)
+  permission_classes = (CustomObjectPermissions,)
+  
 
-  def list(self, request):
-    if request.user.is_authenticated():
-      queryset = Workspace.objects.all().filter(owner=request.user)
-    else:
-      queryset = Workspace.objects.all()
-    serializer = WorkspaceSerializer(queryset, many=True, context={'request': request})
-    return Response(serializer.data)
+  # list: list all workspaces the user has permissions to view
+  # def list(self, request):
+  #   queryset = Workspace.objects.all()
+  #   serializer = WorkspaceSerializer(queryset, many=True, context={'request':request})
+  #   return Response(serializer.data)
+
+    # REMOVE LATER
+    # if request.user.is_authenticated():
+    #   queryset = Workspace.objects.all().filter(owner=request.user)
+    # else:
+    #   queryset = Workspace.objects.all()
+    # serializer = WorkspaceSerializer(queryset, many=True, context={'request': request})
+    # return Response(serializer.data)
 
 class LiteralSigViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
