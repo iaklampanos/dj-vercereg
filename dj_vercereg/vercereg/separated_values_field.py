@@ -11,9 +11,12 @@ class SeparatedValuesField(models.TextField):
   def to_python(self, value):
     if not value: return []
     elif isinstance(value, list) or isinstance(value, tuple) or isinstance(value, set): 
-      return list(value)
-    elif isinstance(value, unicode) or isinstance(value, str): 
-      return value.split(self.token)
+      # return list(value)
+      return self.token.join(list(value))
+    elif isinstance(value, unicode) or isinstance(value, str):
+      # print 'to_python: string or unicode :  ' + value
+      # return str(value).split(self.token)
+      return str(value)
     else:
       raise ValidationError('Invalid input for a SeparatedValuesField instance: ' + str(type(value)))
   
@@ -22,13 +25,16 @@ class SeparatedValuesField(models.TextField):
   def get_prep_value(self, value):
     if not value: return None
     elif isinstance(value, unicode) or isinstance(value, str):
+      print 'instance unicode ' + value 
       spl = str(value).split(self.token)
       retlst = list(set(x.strip() for x in spl))
       retlst.sort()
       return self.token.join(retlst)
     elif isinstance(value, list) or isinstance(value, set) or isinstance(value, tuple):
+      print 'instance list ' + str(value)
       retlst = list(set([str(x).strip() for x in value]))
       retlst.sort()
+      print self.token.join(retlst)
       return self.token.join(retlst)
     else:
       raise ValidationError('Cannot get_prep_value for SeparatedValuesField instance: ' + str(type(value)))

@@ -1,6 +1,8 @@
 from django.contrib import admin
 from vercereg.models import Workspace, PESig, LiteralSig, PEImplementation, FnImplementation, FunctionSig, Connection
 from guardian.admin import GuardedModelAdmin
+from django.forms import TextInput, Textarea
+from django.db import models
 import reversion
 
 
@@ -31,7 +33,11 @@ class FnImplInLine(admin.StackedInline):
   model = FnImplementation
   extra = 1
 
-class ConnectionInLine(admin.StackedInline):
+class ConnectionInLine(admin.TabularInline):
+  formfield_overrides = {
+    models.CharField: {'widget': TextInput(attrs={'size':'20'})},
+    models.TextField: {'widget': Textarea(attrs={'rows':1, 'cols':30})},
+  }
   model = Connection
   extra = 1
 

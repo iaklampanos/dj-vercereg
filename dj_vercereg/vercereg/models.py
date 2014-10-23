@@ -12,7 +12,11 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
         
+
 class Workspace(models.Model):
+  '''
+  The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name.
+  '''
   name = models.CharField(max_length=100)
   owner = models.ForeignKey(User)
   group = models.ForeignKey(Group)
@@ -37,7 +41,11 @@ class Workspace(models.Model):
     #   ('write_workspace', 'Can view and alter the contents of a workspace.')
     # )
 
+
 class WorkspaceItem(models.Model):
+  '''
+  An abstract model representing the basis for concrete workspace items, such as functions and PEs. A workspace item has at least a package, a name, a user and a user-group. Each workspace item belongs to exactly one workspace.
+  '''
   workspace = models.ForeignKey(Workspace)
   pckg = models.CharField(max_length=100)
   name = models.CharField(max_length=100)
@@ -52,6 +60,9 @@ class WorkspaceItem(models.Model):
 
 
 class PESig(WorkspaceItem):
+  '''
+  A model representing the signature of a PE. PEs are workspace items.
+  '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   # Implied connection_set fields due to ForeignKey in Connection relation
@@ -67,14 +78,18 @@ class PESig(WorkspaceItem):
     verbose_name = "PE"
     verbose_name_plural = "PEs"
 
-class Connection(WorkspaceItem):
+
+class Connection(models.Model):
+  '''
+  A model representing a PE connections. Connections are descriptions of pipes between PEs and belong to their respective PEs. As they are not designed to be dealt with independently of their PEs, connections are not workspace items.
+  '''
   CONNECTION_TYPES = (
     ('IN', 'In'),
     ('OUT', 'Out')
   )
 
   kind = models.CharField(max_length=3, choices=CONNECTION_TYPES)
-  # name = models.CharField(max_length=30)
+  name = models.CharField(max_length=30)
   s_type = models.CharField(max_length=30, null=True, blank=True)
   d_type = models.CharField(max_length=30, null=True, blank=True)
   comment = models.CharField(max_length=200, null=True, blank=True)
@@ -82,22 +97,14 @@ class Connection(WorkspaceItem):
   pesig = models.ForeignKey(PESig)
   modifiers = SeparatedValuesField(null=True, blank=True)
 
-  # ForeignKey in Modifier would imply that there is a modifier_set accessible from Connection
-
-# class Modifier(models.Model):
-#   value = models.CharField(max_length=30)
-#   connection = models.ForeignKey(Connection)
-
   def __unicode__(self):
-    tmpmods = []
-    if self.modifiers and len(self.modifiers)>0:
-      tmpmods = [str(x).encode('utf-8') for x in self.modifiers]
-    print '>> ' + str(tmpmods)
-    mods = '(%s)' % (':'.join(tmpmods))
-    return u'[%s] %s.%s (%s|%s)' % (self.workspace, self.pckg, self.name, self.kind, mods)
+    return u'[%s] %s (%s|%s)' % (self.pesig, self.name, self.kind, self.modifiers)
 
 
 class LiteralSig(WorkspaceItem):
+  '''
+  A model representing a literal in a workspace. Literals only carry a package.name and a value. They are workspace items.
+  '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   value = models.CharField(max_length=50, null=True, blank=False)
@@ -105,28 +112,43 @@ class LiteralSig(WorkspaceItem):
   class Meta:
     verbose_name = "literal"
 
+
 class FunctionSig(WorkspaceItem):
+  '''
+  A model representing a function in a workspace. 
+  '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   return_type = models.CharField(max_length=30)
   
   class Meta:
     verbose_name = "function"
-  
+
+
 class FunctionParameters(models.Model):
+  '''
+  A model representing a tuple of function parameters. Similar to connections, parameters only exist within their parent functions, they are therefore not made to be workspace items - these are their owning functions. 
+  '''
   param_name = models.CharField(max_length=30)
   param_type = models.CharField(max_length=30, null=True, blank=True, default=None)
   parent_function = models.ForeignKey(FunctionSig)
   
 
 class WorkflowSig(WorkspaceItem):
+  '''
+  A workflow signature model, to hold information about whole workflows. This is still TODO / XXX. 
+  '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
   
   class Meta:
     verbose_name = "workflow"
 
+
 class PEImplementation(WorkspaceItem):
+  '''
+  This is a model to hold an implementation of a PE. This is a separate workspace item and it will be associated to exactly one PESig (many-to-one).
+  '''
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(PESig)
@@ -137,7 +159,11 @@ class PEImplementation(WorkspaceItem):
   class Meta:
     verbose_name = "PE implementation"
 
+
 class FnImplementation(WorkspaceItem):
+  '''
+  A model to encapsulate the notion of a function implementation. This is a workspace item and it is associated to exactly one FunctionSig instance (many-to-one).
+  '''
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(FunctionSig)
