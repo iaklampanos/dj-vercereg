@@ -74,8 +74,8 @@ class FunctionSigsInLine(admin.TabularInline):
   extra = 1
 
 class WorkspaceAdmin(reversion.VersionAdmin, GuardedModelAdmin):
-  list_display = ('name', 'description', 'owner', 'group', )  
-  inlines = [PESigsInLine, FunctionSigsInLine]
+  list_display = ('name', 'description', 'owner', )  
+  # inlines = [PESigsInLine, FunctionSigsInLine]
 
 admin.site.register(PESig, PESigAdmin)
 admin.site.register(FunctionSig, FunctionSigAdmin)

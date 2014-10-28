@@ -10,10 +10,11 @@ DB_COMMAND=$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) $
 
 help::
 	@echo "Help:"
-	@echo "make <command> <params>"
+	@echo "   make <command> <params>"
 	@echo ""
 	@echo "Commands:"
 	@echo "   db-shell: execute a mysql shell to the VERCE Registry DB"
+	@echo "   db-dropcreate: drop and create the DB schema"
 	
 db-shell::
 	$(DB_COMMAND)

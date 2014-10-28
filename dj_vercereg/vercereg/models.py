@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from vercereg.separated_values_field import SeparatedValuesField
+import reversion
 
 @receiver(post_save, sender=User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -19,7 +20,7 @@ class Workspace(models.Model):
   '''
   name = models.CharField(max_length=100)
   owner = models.ForeignKey(User)
-  group = models.ForeignKey(Group)
+  # group = models.ForeignKey(Group)
   description = models.TextField(null=True, blank=True)
   unique_together = (("owner", "name"),)
 
@@ -36,10 +37,12 @@ class Workspace(models.Model):
     
   class Meta:
     verbose_name = 'workspace'
-    # permissions = (
-    #   ('view_workspace', 'Can view and clone the contents of a workspace.'),
-    #   ('write_workspace', 'Can view and alter the contents of a workspace.')
-    # )
+    permissions = (
+      ('view_meta_workspace', 'Can view the workspace in a list.'),
+      ('view_contents_workspace', 'Can view the contents of a workspace and clone it.'),
+      ('modify_meta_workspace', 'Can modify the metadata of a workspace.'),
+      ('modify_contents_workspace', 'Can alter the contents of a workspace.'),
+    )
 
 
 class WorkspaceItem(models.Model):
@@ -50,7 +53,7 @@ class WorkspaceItem(models.Model):
   pckg = models.CharField(max_length=100)
   name = models.CharField(max_length=100)
   user = models.ForeignKey(User)
-  group = models.ForeignKey(Group)
+  # group = models.ForeignKey(Group)
 
   class Meta:
     abstract = True
@@ -136,7 +139,8 @@ class FunctionParameters(models.Model):
 
 class WorkflowSig(WorkspaceItem):
   '''
-  A workflow signature model, to hold information about whole workflows. This is still TODO / XXX. 
+  A workflow signature model, to hold information about whole workflows.
+  TODO: Think about implementation. 
   '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()
@@ -173,3 +177,16 @@ class FnImplementation(WorkspaceItem):
     
   class Meta:
     verbose_name = "function implementation"
+    
+
+# Reversion registrations for version control
+reversion.register(Workspace)
+reversion.register(WorkspaceItem)
+reversion.register(PESig)
+reversion.register(Connection)
+reversion.register(FunctionSig)
+reversion.register(FunctionParameters)
+reversion.register(LiteralSig)
+reversion.register(WorkflowSig)
+reversion.register(PEImplementation)
+reversion.register(FnImplementation)
