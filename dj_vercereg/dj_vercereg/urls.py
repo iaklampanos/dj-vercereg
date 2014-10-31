@@ -24,6 +24,6 @@ urlpatterns = patterns('',
     url(r'^api-token-auth/', 'rest_framework.authtoken.views.obtain_auth_token'),
 )
 
-
+# Admin-site specifics:
 admin.site.site_header = 'VERCE Registry Admin'
 admin.site.site_title = "VERCE Registry"

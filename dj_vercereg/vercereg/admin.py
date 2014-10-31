@@ -1,9 +1,13 @@
 from django.contrib import admin
-from vercereg.models import Workspace, PESig, LiteralSig, PEImplementation, FnImplementation, FunctionSig, Connection
+from vercereg.models import Workspace, PESig, LiteralSig, PEImplementation, FnImplementation, FunctionSig, Connection, RegistryUserGroup
 from guardian.admin import GuardedModelAdmin
 from django.forms import TextInput, Textarea
 from django.db import models
 import reversion
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import GroupAdmin
+from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
 
 
 class PEImplInLine(admin.StackedInline):
@@ -28,7 +32,7 @@ class PEImplInLine(admin.StackedInline):
   #     else:
   #       field.queryset = field.queryset.none()
   #   return field
-  
+
 class FnImplInLine(admin.StackedInline):
   model = FnImplementation
   extra = 1
@@ -49,10 +53,10 @@ class PESigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   #   # just save obj reference for future processing in Inline
   #   request._obj_ = obj
   #   return super(PESigAdmin, self).get_form(request, obj, **kwargs)
-  
+
 class LiteralSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('workspace', 'pckg', 'name', 'user', 'description', 'value')
-    
+
 class FunctionSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
   inlines = [FnImplInLine, ]
@@ -62,21 +66,29 @@ class PEImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
 
 class FnImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
   list_display = ('parent_sig', 'description', 'short_code')
-  
+
 class PESigsInLine(admin.TabularInline):
   model = PESig
   extra = 1
-  
-  
 
 class FunctionSigsInLine(admin.TabularInline):
   model = FunctionSig
   extra = 1
 
 class WorkspaceAdmin(reversion.VersionAdmin, GuardedModelAdmin):
-  list_display = ('name', 'description', 'owner', )  
+  list_display = ('name', 'description', 'owner', )
   # inlines = [PESigsInLine, FunctionSigsInLine]
 
+
+class RegistryUserGroupInline(admin.StackedInline):
+  model = RegistryUserGroup
+  can_delete = False
+  
+class GroupAdmin(GroupAdmin):
+  inlines = [RegistryUserGroupInline]
+
+admin.site.unregister(Group)
+admin.site.register(Group, GroupAdmin)
 admin.site.register(PESig, PESigAdmin)
 admin.site.register(FunctionSig, FunctionSigAdmin)
 admin.site.register(LiteralSig, LiteralSigAdmin)

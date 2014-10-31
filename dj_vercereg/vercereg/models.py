@@ -7,22 +7,34 @@ from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from vercereg.separated_values_field import SeparatedValuesField
 import reversion
+import datetime
 
 @receiver(post_save, sender=User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
-        
+
+
+class RegistryUserGroup(models.Model):
+  '''Extends the group model so that it incorporates owner-users.'''
+  group = models.OneToOneField(Group)
+  owner = models.ForeignKey(User)
+  
+  def get_group_name(self):
+    return self.group.name
+  
+  def get_owner_username(self):
+    return self.owner.username
+  
 
 class Workspace(models.Model):
-  '''
-  The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name.
-  '''
+  ''' The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name. '''
+  
   name = models.CharField(max_length=100)
   owner = models.ForeignKey(User)
-  # group = models.ForeignKey(Group)
   description = models.TextField(null=True, blank=True)
   unique_together = (("owner", "name"),)
+  creation_date = models.DateTimeField(default=datetime.datetime.now())
 
   def __unicode__(self):
     return u'%s: %s' % (self.owner.username, self.name)

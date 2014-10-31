@@ -1,26 +1,43 @@
-from django.shortcuts import render
-from rest_framework import viewsets
-from vercereg.serializers import UserSerializer
-from vercereg.serializers import GroupSerializer
-from vercereg.serializers import WorkspaceSerializer
-from vercereg.serializers import PESigSerializer
-from vercereg.serializers import LiteralSigSerializer
-from vercereg.serializers import PEImplementationSerializer
-from vercereg.serializers import FnImplementationSerializer
-from vercereg.serializers import FunctionSigSerializer
-from vercereg.serializers import WorkspaceDeepSerializer
-from vercereg.models import Workspace, PESig, FunctionSig, PEImplementation, FnImplementation, LiteralSig
-from django.contrib.auth.models import User
-from django.contrib.auth.models import Group
-from rest_framework.response import Response
-from rest_framework import permissions
-from rest_framework.filters import DjangoObjectPermissionsFilter
-from vercereg.permissions import WorkspaceBasedPermissions
-from vercereg.permissions import WorkspaceItemPermissions
-from django.shortcuts import get_object_or_404
+from datetime import datetime
 
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import User
+
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 
 from guardian.shortcuts import assign_perm
+
+from rest_framework import permissions
+from rest_framework import viewsets
+from rest_framework.filters import DjangoObjectPermissionsFilter
+from rest_framework.response import Response
+
+from vercereg.models import FnImplementation
+from vercereg.models import FunctionSig
+from vercereg.models import LiteralSig
+from vercereg.models import PEImplementation
+from vercereg.models import PESig
+from vercereg.models import Workspace
+from vercereg.models import RegistryUserGroup
+
+from vercereg.permissions import UserAccessPermissions
+from vercereg.permissions import WorkspaceBasedPermissions
+from vercereg.permissions import WorkspaceItemPermissions
+
+from vercereg.serializers import FnImplementationSerializer
+from vercereg.serializers import FunctionSigSerializer
+from vercereg.serializers import GroupSerializer
+from vercereg.serializers import LiteralSigSerializer
+from vercereg.serializers import PEImplementationSerializer
+from vercereg.serializers import PESigSerializer
+from vercereg.serializers import UserSerializer
+from vercereg.serializers import UserUpdateSerializer
+from vercereg.serializers import WorkspaceSerializer
+from vercereg.serializers import WorkspaceDeepSerializer
+
+from rest_framework import permissions 
+from rest_framework.decorators import api_view
 
 
 def set_workspace_default_permissions(wspc, user):
@@ -32,9 +49,9 @@ def set_workspace_default_permissions(wspc, user):
   assign_perm('vercereg.view_contents_workspace', user, wspc)
   assign_perm('vercereg.view_meta_workspace', user, wspc)
   
-  
+
 class WorkspaceViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions,  )
+  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
   
   queryset = Workspace.objects.all()
   serializer_class = WorkspaceSerializer
@@ -46,70 +63,87 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   def list(self, request):
-    allowed_workspaces = [] 
+    allowed_workspaces = []
     for w in self.queryset:
       try:
         self.check_object_permissions(request, w)
         allowed_workspaces.append(w)
       except:
-        pass 
+        pass
     serializer = WorkspaceSerializer(allowed_workspaces, many=True, context={'request': request})
     return Response(serializer.data)
-    
-  def pre_save(self, obj):
-    obj.owner = self.request.user
-    
-  # def create(self, request):
-  #   serializer = WorkspaceSerializer(many=False, context={'request':request})
-  #   return Response(serializer.data)
   
-  def update(self, request):
-    pass
+  def pre_save(self, obj):
+    obj.creation_date = datetime.now()
+    if not obj.pk:
+      obj.owner = self.request.user
+
 
 class UserViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
-
+  permission_classes = (permissions.IsAuthenticated, UserAccessPermissions)
+  
   queryset = User.objects.all()
   serializer_class = UserSerializer
+  
+  def list(self, request):
+    allowed_users = []
+    for u in self.queryset:
+      try:
+        self.check_object_permissions(request, u)
+        allowed_users.append(u)
+      except:
+        pass
+    serializer = UserSerializer(allowed_users, many=True, context={'request': request})
+    # serializer = UserSerializer(allowed_users, many=True)
+    return Response(serializer.data)
 
+  def get_serializer_class(self):
+    if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
+      return UserSerializer
+    # elif self.request.method=='PUT':
+    else:
+      return UserUpdateSerializer
 
+  
+  
+    
 class GroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
-  queryset = Group.objects.all()
+  
+  queryset = RegistryUserGroup.objects.all()
   serializer_class = GroupSerializer
 
 
 class LiteralSigViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
+  
   queryset = LiteralSig.objects.all()
   serializer_class = LiteralSigSerializer
-  
+
 
 class PESigViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
+  
   queryset = PESig.objects.all()
   serializer_class = PESigSerializer
-  
+
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
+  
   queryset = FunctionSig.objects.all()
   serializer_class = FunctionSigSerializer
-  
+
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
+  
   queryset = PEImplementation.objects.all()
   serializer_class = PEImplementationSerializer
-  
+
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
-
+  
   queryset = FnImplementation.objects.all()
   serializer_class = FnImplementationSerializer
