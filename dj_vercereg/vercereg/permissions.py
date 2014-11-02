@@ -1,8 +1,27 @@
 from rest_framework import permissions 
     
 
-class UserAccessPermissions(permissions.BasePermission):
+class RegistryUserGroupAccessPermissions(permissions.BasePermission):
+  '''Defines permissions for accessing REST registryusergroup objects'''
 
+  def has_permission(self, request, view):
+    '''
+    General DELETE permissions given only to staff and superusers; other methods are granted to everyone. 
+    TODO: Check this works as expected.
+    '''
+    if request.method == 'DELETE':
+      return request.user.is_superuser or request.user.is_staff
+    else: 
+      return True
+
+  def has_object_permission(self, request, view, obj):
+    '''Full permissions for superusers, staff or group owners'''
+    return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
+
+
+class UserAccessPermissions(permissions.BasePermission):
+  '''Defines permissions for accessing REST user objects'''
+  
   def has_permission(self, request, view):
     if request.method == 'POST' or request.method == 'DELETE':
       return request.user.is_superuser or request.user.is_staff

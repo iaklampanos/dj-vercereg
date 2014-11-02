@@ -18,7 +18,8 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 class RegistryUserGroup(models.Model):
   '''Extends the group model so that it incorporates owner-users.'''
   group = models.OneToOneField(Group)
-  owner = models.ForeignKey(User)
+  owner = models.ForeignKey(User, related_name='owns')
+  description = models.TextField(null=True, blank=True)
   
   def get_group_name(self):
     return self.group.name
@@ -152,7 +153,7 @@ class FunctionParameters(models.Model):
 class WorkflowSig(WorkspaceItem):
   '''
   A workflow signature model, to hold information about whole workflows.
-  TODO: Think about implementation. 
+  TODO: (nice-to-have) Think about implementation. 
   '''
   description = models.TextField(null=True, blank=True)
   creation_date = models.DateTimeField()

@@ -24,10 +24,12 @@ from vercereg.models import RegistryUserGroup
 from vercereg.permissions import UserAccessPermissions
 from vercereg.permissions import WorkspaceBasedPermissions
 from vercereg.permissions import WorkspaceItemPermissions
+from vercereg.permissions import RegistryUserGroupAccessPermissions
 
 from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
 from vercereg.serializers import GroupSerializer
+from vercereg.serializers import RegistryUserGroupSerializer
 from vercereg.serializers import LiteralSigSerializer
 from vercereg.serializers import PEImplementationSerializer
 from vercereg.serializers import PESigSerializer
@@ -105,12 +107,27 @@ class UserViewSet(viewsets.ModelViewSet):
       return UserUpdateSerializer
 
   
+
+# class RegistryUserGroupViewSet(viewsets.ModelViewSet):
+#   permission_classes = (permission_classes.IsAuthenticated, )
+#
+#   queryset = RegistryUserGroup.objects.all()
+#   serializer_class = GroupSerializer
   
     
-class GroupViewSet(viewsets.ModelViewSet):
+class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated,)
   
   queryset = RegistryUserGroup.objects.all()
+  serializer_class = RegistryUserGroupSerializer
+  
+  def create(self, request):
+    return Response('')
+  
+class GroupViewSet(viewsets.ModelViewSet):
+  permission_classes = (permissions.IsAuthenticated, )
+
+  queryset = Group.objects.all()
   serializer_class = GroupSerializer
 
 

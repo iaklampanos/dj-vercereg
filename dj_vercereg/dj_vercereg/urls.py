@@ -6,6 +6,7 @@ from vercereg import views
 router = routers.DefaultRouter()
 router.register(r'rest/users', views.UserViewSet, base_name='user')
 router.register(r'rest/groups', views.GroupViewSet, base_name='group')
+router.register(r'rest/registryusergroups', views.RegistryUserGroupViewSet, base_name='registryusergroup')
 router.register(r'rest/workspaces', views.WorkspaceViewSet, base_name='workspace')
 router.register(r'rest/pes', views.PESigViewSet, base_name='pesig')
 router.register(r'rest/literals', views.LiteralSigViewSet, base_name='literalsig')

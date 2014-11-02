@@ -4,9 +4,22 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 
 from rest_framework import serializers
-from rest_framework.reverse import reverse
+from vercereg.utils import get_base_rest_uri
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):  
+##############################################################################
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+  groups = serializers.SerializerMethodField('get_reg_groups')
+
+  def get_reg_groups(self, obj):
+    toret = []
+    # print '>> ', str(obj.groups)
+    request = self.context.get('request')
+    for v in obj.groups.values():
+      # XXX: Construct the URL manually, via the request
+      rug = get_base_rest_uri(request) + 'registryusergroups/' + str(v['id'])
+      toret.append(rug)
+    return toret
+
   def restore_object(self, attrs, instance=None):
     user = super(UserSerializer, self).restore_object(attrs, instance)
     user.set_password(attrs['password'])
@@ -14,9 +27,10 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
   class Meta:
     model = User
-    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups')
+    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns')
     write_only_fields = ('password',)
 
+##############################################################################
 class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = User
@@ -29,37 +43,45 @@ class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
     user.set_password(attrs['password'])
     return user
 
-class GroupSerializer(serializers.HyperlinkedModelSerializer):
+##############################################################################
+class RegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):
   group_name = serializers.CharField(source='get_group_name', read_only=True)
   owner_username = serializers.CharField(source='get_owner_username', read_only=True)
   class Meta:
     model = RegistryUserGroup
     fields = ('group_name', 'owner_username', 'group', 'owner', )
 
+##############################################################################
+class GroupSerializer(serializers.HyperlinkedModelSerializer):
+  class Meta:
+    model = Group
+    fields = ('name',)
 
+##############################################################################
 class PEImplementationSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PEImplementation
     fields = ('description', 'code', 'parent_sig', 'pckg', 'name', 'user', 'workspace')
 
-
+##############################################################################
 class FnImplementationSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = FnImplementation
     fields = ('description', 'code', 'parent_sig', 'pckg', 'name', 'user', 'workspace')
 
-
+##############################################################################
 class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = Workspace
     depth = 0
     read_only_fields = ('owner', 'creation_date',)
 
-
+##############################################################################
 class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = Workspace
-    depth = 1
+    # TODO (nice-to-have) revisit the depth issue, user serialization is not good enough - disabled for now. 
+    depth = 0
     read_only_fields = ('owner', 'creation_date')
   
   # def transform_owner(self, obj, value):
@@ -67,17 +89,19 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
   #   print 'data: ', str(ser.data)
   #   return ser.data
 
-
+##############################################################################
 class PESigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PESig
     fields = ('id', 'workspace', 'pckg', 'name', 'user', 'description')
 
+##############################################################################
 class FunctionSigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = FunctionSig
     fields = ('id', 'workspace', 'pckg', 'name', 'user', 'description')
 
+##############################################################################
 class LiteralSigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = LiteralSig
