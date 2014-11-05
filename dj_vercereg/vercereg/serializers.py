@@ -15,8 +15,11 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     # print '>> ', str(obj.groups)
     request = self.context.get('request')
     for v in obj.groups.values():
-      # XXX: Construct the URL manually, via the request
-      rug = get_base_rest_uri(request) + 'registryusergroups/' + str(v['id'])
+      # FIXME: Constructs the URL manually, via the request, which is not advisable (insecure and not very robust)
+      group_id = v['id']
+      g = Group.objects.get(id=group_id)
+      rug_instance = RegistryUserGroup.objects.get(group=g)
+      rug = get_base_rest_uri(request) + 'registryusergroups/' + str(rug_instance.id) + '/'
       toret.append(rug)
     return toret
 
@@ -27,14 +30,15 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
   class Meta:
     model = User
-    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns')
+    fields = ('url', 'username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns')
     write_only_fields = ('password',)
+    read_only_fields = ('owns',)
 
 ##############################################################################
 class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = User
-    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups')
+    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns')
     write_only_fields = ('password',)
     read_only_fields = ('username',)
   
@@ -45,11 +49,24 @@ class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
 
 ##############################################################################
 class RegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):
-  group_name = serializers.CharField(source='get_group_name', read_only=True)
+  group_name = serializers.CharField(source='get_group_name')#, read_only=True)
   owner_username = serializers.CharField(source='get_owner_username', read_only=True)
+
   class Meta:
     model = RegistryUserGroup
-    fields = ('group_name', 'owner_username', 'group', 'owner', )
+    fields = ('url', 'group_name', 'owner_username', 'group', 'owner', 'description')
+    read_only_fields = ('group', 'owner')
+
+##############################################################################
+class AdminRegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):
+  group_name = serializers.CharField(source='get_group_name')#, read_only=True)
+  owner_username = serializers.CharField(source='get_owner_username', read_only=True)
+
+  class Meta:
+    model = RegistryUserGroup
+    fields = ('url', 'group_name', 'owner_username', 'group', 'owner', 'description')
+    read_only_fields = ('group', )
+
 
 ##############################################################################
 class GroupSerializer(serializers.HyperlinkedModelSerializer):

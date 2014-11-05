@@ -12,6 +12,7 @@ from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework.filters import DjangoObjectPermissionsFilter
 from rest_framework.response import Response
+from rest_framework import status
 
 from vercereg.models import FnImplementation
 from vercereg.models import FunctionSig
@@ -30,6 +31,7 @@ from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
 from vercereg.serializers import GroupSerializer
 from vercereg.serializers import RegistryUserGroupSerializer
+from vercereg.serializers import AdminRegistryUserGroupSerializer
 from vercereg.serializers import LiteralSigSerializer
 from vercereg.serializers import PEImplementationSerializer
 from vercereg.serializers import PESigSerializer
@@ -38,9 +40,15 @@ from vercereg.serializers import UserUpdateSerializer
 from vercereg.serializers import WorkspaceSerializer
 from vercereg.serializers import WorkspaceDeepSerializer
 
+
 from rest_framework import permissions 
 from rest_framework.decorators import api_view
 
+from django.db import transaction
+
+from vercereg.utils import extract_id_from_url
+
+import traceback
 
 def set_workspace_default_permissions(wspc, user):
   ''' Sets the default permissions to a newly created workspace, whose creator is user '''
@@ -98,6 +106,42 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer = UserSerializer(allowed_users, many=True, context={'request': request})
     # serializer = UserSerializer(allowed_users, many=True)
     return Response(serializer.data)
+  
+  def create(self, request):
+    '''Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)'''
+    reqdata = request.DATA
+
+    try:
+      u = User.objects.create_user(username=reqdata['username'], password=reqdata['password'], email=reqdata['email'], first_name=reqdata['first_name'], last_name=reqdata['last_name'])
+      u.first_name = reqdata['first_name']
+      u.last_name = reqdata['last_name'] 
+      u.save()
+    except:
+      msg={'error when creating user':'username already exists or unknown error'}
+      return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # create a group for this user, which the user will own
+    try:
+      # g = Group(name=reqdata['username'])
+      g = Group.objects.create(name=reqdata['username'])
+      g.user_set.add(u)
+      g.save()
+    except:
+      if u.pk: u.delete()
+      return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    try:
+      desc = 'Default group for user ' + u.username + '.'
+      rug = RegistryUserGroup(group=g, description=desc, owner=u)
+      rug.save()
+    except:
+      if g.pk: g.delete()
+      if u.pk: u.delete()
+      return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+      
+    
+    serializer = UserSerializer(u, context={'request': request})
+    return Response(serializer.data)
 
   def get_serializer_class(self):
     if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
@@ -106,23 +150,87 @@ class UserViewSet(viewsets.ModelViewSet):
     else:
       return UserUpdateSerializer
 
-  
 
 # class RegistryUserGroupViewSet(viewsets.ModelViewSet):
 #   permission_classes = (permission_classes.IsAuthenticated, )
 #
 #   queryset = RegistryUserGroup.objects.all()
 #   serializer_class = GroupSerializer
-  
-    
+
 class RegistryUserGroupViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, RegistryUserGroupAccessPermissions)
   
   queryset = RegistryUserGroup.objects.all()
   serializer_class = RegistryUserGroupSerializer
   
+  
+  def get_serializer_class(self):
+    print type(self.request.user)
+    if self.request.user.is_superuser or self.request.user.is_staff:
+      return AdminRegistryUserGroupSerializer
+    else:
+      return RegistryUserGroupSerializer
+      
+  
+  @transaction.atomic
   def create(self, request):
-    return Response('')
+    print 'creating registry user group'
+    reqdata = request.DATA
+    print 'Request data:', str(reqdata)
+    
+    # Create a new group
+    try:
+      g = Group(name=reqdata['group_name'])
+      g.save()
+    except:
+      return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Extract owner
+    try:
+      ownerurl = reqdata['owner']
+      # FIXME Using manual id extraction, there must be a better way...
+      oid = extract_id_from_url(ownerurl)
+      o = User.objects.get(id=oid)
+    except:
+      return Response({'error resolving group owner':'the user may not exist in the DB, or bad request.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+      rug = RegistryUserGroup(group=g, description=reqdata['description'], owner=o)
+      rug.save()
+    except:
+      return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request':request})
+    return Response(serializer.data)
+  
+  
+  @transaction.atomic
+  def update(self, request, pk=None):
+    rug = RegistryUserGroup.objects.get(pk=pk)
+    #print 'Updating (PUT) RegistryUserGroup:', str(rug.group.name)
+    
+    # Update the group:
+    g = rug.group
+    if (g.name != request.DATA['group_name']):
+      g.name = request.DATA['group_name']
+      g.save()
+    
+    # Update the registryusergroup
+    print request.DATA['owner']
+    # FIXME Using manual id extraction, there must be a better way...
+    id = extract_id_from_url(request.DATA['owner'])
+    user = User.objects.get(id=id)
+    rug.owner = user
+    rug.description = request.DATA['description']
+    
+    # Save the registryusergroup
+    rug.save()
+    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request': request})
+    return Response(serializer.data)
+
+  
+  # def partial_update(self, request, pk=None):
+  #   print 'partial update called'
+  #   pass
   
 class GroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, )
