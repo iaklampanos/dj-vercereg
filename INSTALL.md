@@ -1,4 +1,4 @@
-Tools to install on a POSIX machine with mysql already installed: 
+Steps to prepare dj-vercereg on a POSIX machine with mysql already installed: 
 
 1. python manage.py syncdb
 2. python manage.py createsuperuser
