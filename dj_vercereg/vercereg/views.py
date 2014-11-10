@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.utils import timezone
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import User
@@ -21,11 +22,13 @@ from vercereg.models import PEImplementation
 from vercereg.models import PESig
 from vercereg.models import Workspace
 from vercereg.models import RegistryUserGroup
+from vercereg.models import Connection
 
 from vercereg.permissions import UserAccessPermissions
 from vercereg.permissions import WorkspaceBasedPermissions
 from vercereg.permissions import WorkspaceItemPermissions
 from vercereg.permissions import RegistryUserGroupAccessPermissions
+from vercereg.permissions import ConnectionPermissions
 
 from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
@@ -39,9 +42,9 @@ from vercereg.serializers import UserSerializer
 from vercereg.serializers import UserUpdateSerializer
 from vercereg.serializers import WorkspaceSerializer
 from vercereg.serializers import WorkspaceDeepSerializer
+from vercereg.serializers import ConnectionSerializer
 
-
-from rest_framework import permissions 
+from rest_framework import permissions
 from rest_framework.decorators import api_view
 
 from django.db import transaction
@@ -58,7 +61,7 @@ def set_workspace_default_permissions(wspc, user):
   assign_perm('vercereg.modify_contents_workspace', user, wspc)
   assign_perm('vercereg.view_contents_workspace', user, wspc)
   assign_perm('vercereg.view_meta_workspace', user, wspc)
-  
+
 
 class WorkspaceViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
@@ -67,10 +70,39 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   serializer_class = WorkspaceSerializer
   
   def retrieve(self, request, pk=None):
+    allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations']
     wspc = get_object_or_404(self.queryset, pk=pk)
-    self.check_object_permissions(request, wspc)
-    serializer = WorkspaceDeepSerializer(wspc, context={'request': request})
-    return Response(serializer.data)
+    kind_to_show = self.request.QUERY_PARAMS.get('kind')
+    if not kind_to_show or kind_to_show not in allowed_kinds_to_show:
+      self.check_object_permissions(request, wspc)
+      serializer = WorkspaceDeepSerializer(wspc, context={'request': request})
+      return Response(serializer.data)
+    else:
+      serializer = None
+      items = []
+      # FIXME: The repeated self.check_object_permissions(request, wspc) is probably not needed
+      if kind_to_show == 'pes':
+        items = PESig.objects.filter(workspace=wspc)
+        self.check_object_permissions(request, wspc)
+        serializer = PESigSerializer(items, many=True, context={'request': request})
+      elif kind_to_show == 'functions':
+        items = FunctionSig.objects.filter(workspace=wspc)
+        self.check_object_permissions(request, wspc)
+        serializer = FunctionSigSerializer(items, many=True, context={'request': request})
+      elif kind_to_show == 'literals':
+        items = LiteralSig.objects.filter(workspace=wspc)
+        self.check_object_permissions(request, wspc)
+        serializer = LiteralSigSerializer(items, many=True, context={'request': request})
+      elif kind_to_show == 'fn_implementations':
+        items = FnImplementation.objects.filter(workspace=wspc)
+        self.check_object_permissions(request, wspc)
+        serializer = FnImplementationSerializer(items, many=True, context={'request': request})
+      elif kind_to_show == 'pe_implementations':
+        items = PEImplementation.objects.filter(workspace=wspc)
+        self.check_object_permissions(request, wspc)
+        serializer = PEImplementationSerializer(items, many=True, context={'request': request})
+      
+      return Response(serializer.data)
   
   def list(self, request):
     allowed_workspaces = []
@@ -84,7 +116,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   def pre_save(self, obj):
-    obj.creation_date = datetime.now()
+    obj.creation_date = timezone.now()
     if not obj.pk:
       obj.owner = self.request.user
 
@@ -110,16 +142,16 @@ class UserViewSet(viewsets.ModelViewSet):
   def create(self, request):
     '''Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)'''
     reqdata = request.DATA
-
+    
     try:
       u = User.objects.create_user(username=reqdata['username'], password=reqdata['password'], email=reqdata['email'], first_name=reqdata['first_name'], last_name=reqdata['last_name'])
       u.first_name = reqdata['first_name']
-      u.last_name = reqdata['last_name'] 
+      u.last_name = reqdata['last_name']
       u.save()
     except:
       msg={'error when creating user':'username already exists or unknown error'}
       return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+    
     # create a group for this user, which the user will own
     try:
       # g = Group(name=reqdata['username'])
@@ -130,6 +162,15 @@ class UserViewSet(viewsets.ModelViewSet):
       if u.pk: u.delete()
       return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    # attempts to add the new user to the global read-all user group
+    try:
+      read_all_group = Group.objects.get(name='default_read_all_group')
+      read_all_group.user_set.add(u)
+      read_all_group.save()
+    except:
+      exc_type, exc_value, exc_traceback = sys.exc_info()
+      traceback.print_tb(exc_traceback)
+    
     try:
       desc = 'Default group for user ' + u.username + '.'
       rug = RegistryUserGroup(group=g, description=desc, owner=u)
@@ -138,11 +179,11 @@ class UserViewSet(viewsets.ModelViewSet):
       if g.pk: g.delete()
       if u.pk: u.delete()
       return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-      
+    
     
     serializer = UserSerializer(u, context={'request': request})
     return Response(serializer.data)
-
+  
   def get_serializer_class(self):
     if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
       return UserSerializer
@@ -151,11 +192,6 @@ class UserViewSet(viewsets.ModelViewSet):
       return UserUpdateSerializer
 
 
-# class RegistryUserGroupViewSet(viewsets.ModelViewSet):
-#   permission_classes = (permission_classes.IsAuthenticated, )
-#
-#   queryset = RegistryUserGroup.objects.all()
-#   serializer_class = GroupSerializer
 
 class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, RegistryUserGroupAccessPermissions)
@@ -170,7 +206,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
       return AdminRegistryUserGroupSerializer
     else:
       return RegistryUserGroupSerializer
-      
+  
   
   @transaction.atomic
   def create(self, request):
@@ -226,49 +262,90 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
     rug.save()
     serializer = RegistryUserGroupSerializer(rug, many=False, context={'request': request})
     return Response(serializer.data)
-
+  
   
   # def partial_update(self, request, pk=None):
   #   print 'partial update called'
   #   pass
-  
+
+
 class GroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, )
-
+  
   queryset = Group.objects.all()
   serializer_class = GroupSerializer
 
 
+
 class LiteralSigViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
   
   queryset = LiteralSig.objects.all()
   serializer_class = LiteralSigSerializer
+  
+  def pre_save(self, obj):
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
 
 
 class PESigViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
   
   queryset = PESig.objects.all()
   serializer_class = PESigSerializer
-
+  
+  def list(self, request):
+    viewable = []
+    for pe in self.queryset:
+      try:
+        self.check_object_permissions(request, pe)
+        viewable.append(pe)
+      except:
+        pass
+    serializer = PESigSerializer(viewable, many=True, context={'request':request})
+    return Response(serializer.data)
+  
+  def pre_save(self, obj):
+    print 'in pre_save'
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
+      
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = FunctionSig.objects.all()
   serializer_class = FunctionSigSerializer
+  
+  def pre_save(self, obj):
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
+
+# TODO: Not sure this is needed; it may need removing
+class ConnectionViewSet(viewsets.ModelViewSet):
+  permission_classes = (permissions.IsAuthenticated, ConnectionPermissions)
+  queryset = Connection.objects.all()
+  serializer_class = ConnectionSerializer
+  
+  # Disable list view
+  def list(self, request):
+    message = {'error':'listing connections is not permitted'}
+    #TODO: Use a more appropriate ERROR code
+    return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = PEImplementation.objects.all()
   serializer_class = PEImplementationSerializer
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated,)
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = FnImplementation.objects.all()
   serializer_class = FnImplementationSerializer

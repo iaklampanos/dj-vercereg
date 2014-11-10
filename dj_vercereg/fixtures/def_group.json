@@ -1,0 +1,19 @@
+[
+	{
+	  "fields": {
+	    "name": "default_read_all_group",
+	    "permissions": []
+	  },
+	  "model": "auth.group",
+	  "pk": -100
+	},
+	{
+	  "fields": {
+	    "owner": 1,
+	    "group": -100,
+	    "description": "Default group granting read permissions to all workspaces."
+	  },
+	  "model": "vercereg.registryusergroup",
+	  "pk": -100
+	}
+]

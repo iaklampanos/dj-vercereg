@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from vercereg.separated_values_field import SeparatedValuesField
 import reversion
 import datetime
+from vercereg.utils import get_base_rest_uri
 
 # @receiver(post_save, sender=User)
 # def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -40,14 +41,21 @@ class Workspace(models.Model):
   def __unicode__(self):
     return u'%s: %s' % (self.owner.username, self.name)
 
-  def get_workspace_items(self):
-    print '(get_workspace_items)'
-    print str(self.genericsig_set)
-    return self.genericsig_set
-  
   def get_pesigs(self):
-    print self.workspaceitem_set
+    return self.pesig_set.get_queryset()
+  
+  def get_fnsigs(self):
+    return self.functionsig_set.get_queryset()
+  
+  def get_literalsigs(self):
+    return self.literalsig_set.get_queryset()
     
+  def get_peimplementations(self):
+    return self.peimplementation_set.get_queryset()
+  
+  def get_fnimplementations(self):
+    return self.fnimplementation_set.get_queryset()
+
   class Meta:
     verbose_name = 'workspace'
     permissions = (
@@ -57,7 +65,8 @@ class Workspace(models.Model):
       ('modify_contents_workspace', 'Can alter the contents of a workspace.'),
     )
 
-
+# TODO: Move creation_time to WorkspaceItems
+# TODO: Add modification_time to WorkspaceItems
 class WorkspaceItem(models.Model):
   '''
   An abstract model representing the basis for concrete workspace items, such as functions and PEs. A workspace item has at least a package, a name, a user and a user-group. Each workspace item belongs to exactly one workspace.
@@ -67,9 +76,11 @@ class WorkspaceItem(models.Model):
   name = models.CharField(max_length=100)
   user = models.ForeignKey(User)
   # group = models.ForeignKey(Group)
+  creation_date = models.DateTimeField()
 
   class Meta:
     abstract = True
+    unique_together = ('workspace', 'pckg', 'name')
     
   def __unicode__(self):
     return u'[%s] %s.%s' % (self.workspace, self.pckg, self.name)
@@ -80,7 +91,6 @@ class PESig(WorkspaceItem):
   A model representing the signature of a PE. PEs are workspace items.
   '''
   description = models.TextField(null=True, blank=True)
-  creation_date = models.DateTimeField()
   # Implied connection_set fields due to ForeignKey in Connection relation
   PE_TYPES = (
     ('ABSTRACT', 'Abstract'),
@@ -93,6 +103,7 @@ class PESig(WorkspaceItem):
   class Meta:
     verbose_name = "PE"
     verbose_name_plural = "PEs"
+    unique_together = ('workspace', 'pckg', 'name')
 
 
 class Connection(models.Model):
@@ -110,7 +121,7 @@ class Connection(models.Model):
   d_type = models.CharField(max_length=30, null=True, blank=True)
   comment = models.CharField(max_length=200, null=True, blank=True)
   is_array = models.BooleanField(default=False)
-  pesig = models.ForeignKey(PESig)
+  pesig = models.ForeignKey(PESig, related_name='connections')
   modifiers = SeparatedValuesField(null=True, blank=True)
 
   def __unicode__(self):
@@ -122,11 +133,11 @@ class LiteralSig(WorkspaceItem):
   A model representing a literal in a workspace. Literals only carry a package.name and a value. They are workspace items.
   '''
   description = models.TextField(null=True, blank=True)
-  creation_date = models.DateTimeField()
   value = models.CharField(max_length=50, null=True, blank=False)
 
   class Meta:
     verbose_name = "literal"
+    unique_together = ('workspace', 'pckg', 'name')
 
 
 class FunctionSig(WorkspaceItem):
@@ -134,11 +145,11 @@ class FunctionSig(WorkspaceItem):
   A model representing a function in a workspace. 
   '''
   description = models.TextField(null=True, blank=True)
-  creation_date = models.DateTimeField()
   return_type = models.CharField(max_length=30)
   
   class Meta:
     verbose_name = "function"
+    unique_together = ('workspace', 'pckg', 'name')
 
 
 class FunctionParameters(models.Model):
@@ -156,10 +167,10 @@ class WorkflowSig(WorkspaceItem):
   TODO: (nice-to-have) Think about implementation. 
   '''
   description = models.TextField(null=True, blank=True)
-  creation_date = models.DateTimeField()
   
   class Meta:
     verbose_name = "workflow"
+    unique_together = ('workspace', 'pckg', 'name')
 
 
 class PEImplementation(WorkspaceItem):
@@ -175,6 +186,7 @@ class PEImplementation(WorkspaceItem):
   
   class Meta:
     verbose_name = "PE implementation"
+    unique_together = ('workspace', 'pckg', 'name')
 
 
 class FnImplementation(WorkspaceItem):
@@ -190,6 +202,7 @@ class FnImplementation(WorkspaceItem):
     
   class Meta:
     verbose_name = "function implementation"
+    unique_together = ('workspace', 'pckg', 'name')
     
 
 # Reversion registrations for version control

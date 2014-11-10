@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User, Group
-from models import WorkspaceItem, Workspace, PESig, FunctionSig, LiteralSig, PEImplementation, FnImplementation, RegistryUserGroup
+from models import WorkspaceItem, Workspace, PESig, FunctionSig, LiteralSig, PEImplementation, FnImplementation, RegistryUserGroup, Connection
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 
@@ -79,12 +79,14 @@ class PEImplementationSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PEImplementation
     fields = ('description', 'code', 'parent_sig', 'pckg', 'name', 'user', 'workspace')
+    read_only_fields = ('user', 'creation_date',)
 
 ##############################################################################
 class FnImplementationSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = FnImplementation
     fields = ('description', 'code', 'parent_sig', 'pckg', 'name', 'user', 'workspace')
+    read_only_fields = ('user', 'creation_date',)
 
 ##############################################################################
 class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
@@ -95,31 +97,67 @@ class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
 
 ##############################################################################
 class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
+  
+  pes = serializers.CharField(source='get_pesigs')
+  functions = serializers.CharField(source='get_fnsigs')
+  literals = serializers.CharField(source='get_literalsigs')
+  peimplementations = serializers.CharField(source='get_peimplementations')
+  fnimplementations = serializers.CharField(source='get_fnimplementations')
+  
   class Meta:
     model = Workspace
     # TODO (nice-to-have) revisit the depth issue, user serialization is not good enough - disabled for now. 
     depth = 0
     read_only_fields = ('owner', 'creation_date')
   
-  # def transform_owner(self, obj, value):
-  #   ser = UserSerializer(value)
-  #   print 'data: ', str(ser.data)
-  #   return ser.data
+  def transform_pes(self, obj, value):
+    request = self.context.get('request')
+    pes = obj.pesig_set.get_queryset()
+    return map(lambda p: get_base_rest_uri(request) + 'pes/' + str(p.id), pes)
+
+  def transform_functions(self, obj, value):
+    request = self.context.get('request')
+    fns = obj.functionsig_set.get_queryset()
+    return map(lambda p: get_base_rest_uri(request) + 'functions/' + str(p.id), fns)
+
+  def transform_literals(self, obj, value):
+    request = self.context.get('request')
+    lits = obj.literalsig_set.get_queryset()
+    return map(lambda p: get_base_rest_uri(request) + 'literals/' + str(p.id), lits)
+  
+  def transform_peimplementations(self, obj, value):
+    request = self.context.get('request')
+    peimpls = obj.peimplementation_set.get_queryset()
+    return map(lambda p: get_base_rest_uri(request) + 'pe_implementations/' + str(p.id), peimpls)
+  
+  def transform_fnimplementations(self, obj, value):
+    request = self.context.get('request')
+    fnimpls = obj.fnimplementation_set.get_queryset()
+    return map(lambda p: get_base_rest_uri(request) + 'fn_implementations/' + str(p.id), fnimpls)
+
 
 ##############################################################################
 class PESigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PESig
-    fields = ('id', 'workspace', 'pckg', 'name', 'user', 'description')
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'connections', 'creation_date', )
+    read_only_fields = ('user', 'creation_date',)
+
+##############################################################################
+class ConnectionSerializer(serializers.HyperlinkedModelSerializer):
+  class Meta:
+    model = Connection
 
 ##############################################################################
 class FunctionSigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = FunctionSig
-    fields = ('id', 'workspace', 'pckg', 'name', 'user', 'description')
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'creation_date', )
+    read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################
 class LiteralSigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = LiteralSig
-    fields = ('id', 'workspace', 'pckg', 'name', 'value',)
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'value', 'description', 'creation_date', )
+    read_only_fields = ('user', 'creation_date', )

@@ -19,6 +19,10 @@ class RegistryUserGroupAccessPermissions(permissions.BasePermission):
     return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
 
 
+class ConnectionPermissions(permissions.BasePermission):
+  def has_object_permission(self, request, view, obj):
+    return request.user.is_superuser or request.user.is_staff or request.user == obj.pesig.user or len(request.user.groups.filter(name='default_read_all_group')) > 0
+
 class UserAccessPermissions(permissions.BasePermission):
   '''Defines permissions for accessing REST user objects'''
   
@@ -38,7 +42,15 @@ class WorkspaceItemPermissions(permissions.BasePermission):
   '''
 
   def has_object_permission(self, request, view, obj):
-    return request.user == obj.owner or request.user.is_superuser
+    if request.method in permissions.SAFE_METHODS:
+      print 'in safe'
+      return request.user == obj.user or request.user.is_superuser or request.user.is_staff or len(request.user.groups.filter(name='default_read_all_group')) > 0
+    else:
+      print obj
+      print 'in UNsafe'
+      print request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
+      
+      return request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
 
 
 class WorkspaceBasedPermissions(permissions.BasePermission):
@@ -56,7 +68,7 @@ class WorkspaceBasedPermissions(permissions.BasePermission):
     
     if request.method in permissions.SAFE_METHODS:
       has_view_meta_perms = request.user.has_perm('view_meta_workspace', obj)  
-      return has_view_meta_perms or is_owner or is_superuser
+      return has_view_meta_perms or is_owner or is_superuser or len(request.user.groups.filter(name='default_read_all_group')) > 0
     else:
       if request.method == 'PUT':
         has_modify_meta_perms = request.user.has_perm('modify_meta_workspace', obj)
