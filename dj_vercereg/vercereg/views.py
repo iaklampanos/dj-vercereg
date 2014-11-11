@@ -50,8 +50,10 @@ from rest_framework.decorators import api_view
 from django.db import transaction
 
 from vercereg.utils import extract_id_from_url
+from vercereg.workspace_utils import WorkspaceCloner
 
 import traceback
+import sys
 
 def set_workspace_default_permissions(wspc, user):
   ''' Sets the default permissions to a newly created workspace, whose creator is user '''
@@ -64,7 +66,7 @@ def set_workspace_default_permissions(wspc, user):
 
 
 class WorkspaceViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
+  permission_classes = (permissions.AllowAny,)#(permissions.IsAuthenticated, WorkspaceBasedPermissions, )
   
   queryset = Workspace.objects.all()
   serializer_class = WorkspaceSerializer
@@ -103,9 +105,28 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         serializer = PEImplementationSerializer(items, many=True, context={'request': request})
       return Response(serializer.data)
 
+  def clone_workspace(self, clone_of):
+    print 'Cloning ' + str(clone_of)
+    return Response(self.request.user)
+
   def create(self, request):
-    print str(request.DATA)
-    return super(WorkspaceViewSet, self).create(request)
+    clone_of = self.request.QUERY_PARAMS.get('clone_of')
+    if not clone_of:
+      return super(WorkspaceViewSet, self).create(request)
+    try:
+      or_wspc = Workspace.objects.get(id=clone_of)
+    except:
+      msg = {'error':'could not retrieve workspace with id %s'%(clone_of)}
+      return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+      
+    if not self.request.DATA.get('name'):
+      msg = {'error':'name is required'}
+      return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+
+    cloner = WorkspaceCloner(or_wspc, self.request.DATA.get('name'), request.user)
+    cloned_workspace = cloner.clone()
+    serializer = WorkspaceSerializer(cloned_workspace, many=False, context={'request': request})
+    return Response(serializer.data)
   
   def list(self, request):
     allowed_workspaces = []
@@ -353,16 +374,5 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
   queryset = FnImplementation.objects.all()
   serializer_class = FnImplementationSerializer
 
-
-# FIXME: Keep or remove?
-class CloneView(viewsets.ViewSet):
-
-  queryset = Workspace.objects.all()
-  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions)
-  serializer_class = WorkspaceSerializer
-  
-  def create(self, request):
-    newname = self.request.QUERY_PARAMS.get('name')
-    return Response({"name":newname})
   
   

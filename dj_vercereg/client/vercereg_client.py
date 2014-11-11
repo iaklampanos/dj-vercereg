@@ -1,29 +1,33 @@
-import os 
+#!/usr/bin/env python
+
 import sys
-import requests 
+import os
+import curses
+import collections
+import argparse
+import datetime
 
-TOKEN_FILENAME='_token'
-AUTH_HEADER='' # TODO: Fill in / Internet connection...
-PROTOCOL='http'
-HOST='localhost'
-PORT='8000'
-BASE_URL=PROTOCOL + '://' + HOST + ':' + PORT
+from vercereg_lib import VerceRegManager
 
-DEF_PKG_PES='pes'
-DEF_PKG_FNS='fns'
-DEF_PKG_LIT='lits'
-DEF_PKG_FNIMPLS='fnimpls'
-DEF_PKG_PEIMPLS='peimpls'
-DEF_PKG_WORKSPACES='workspaces'
+class VerceRegClient:
+  HISTORY_LENGTH = 5000
+  history = None
+  manager = None
 
-def login(username, password):
-  """docstring for login"""
-  pass
+  def __init__(self):
+    self.history = collections.deque(maxlen=self.HISTORY_LENGTH)
+    self.manager = VerceRegManager()
+  
 
 def main():
-  """docstring for main"""
-  print BASE_URL
-
+  # TODO: Define and implement commands for the client
+  # parser = argparse.ArgumentParser(description='Client for the VERCE Registry.')
+  # parser.add_argument('command', metavar='Command', type=str,
+  #                    help='a VERCE Registry command')
+                     
+  manager = VerceRegManager()
+  manager.login('admin', 'admin')
+  manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
 
 if __name__ == '__main__':
   main()
