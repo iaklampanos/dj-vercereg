@@ -101,8 +101,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         items = PEImplementation.objects.filter(workspace=wspc)
         self.check_object_permissions(request, wspc)
         serializer = PEImplementationSerializer(items, many=True, context={'request': request})
-      
       return Response(serializer.data)
+
+  def create(self, request):
+    print str(request.DATA)
+    return super(WorkspaceViewSet, self).create(request)
   
   def list(self, request):
     allowed_workspaces = []
@@ -141,7 +144,7 @@ class UserViewSet(viewsets.ModelViewSet):
   
   def create(self, request):
     '''Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)'''
-    reqdata = request.DATA
+    reqdata = DATA
     
     try:
       u = User.objects.create_user(username=reqdata['username'], password=reqdata['password'], email=reqdata['email'], first_name=reqdata['first_name'], last_name=reqdata['last_name'])
@@ -349,3 +352,17 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
   
   queryset = FnImplementation.objects.all()
   serializer_class = FnImplementationSerializer
+
+
+# FIXME: Keep or remove?
+class CloneView(viewsets.ViewSet):
+
+  queryset = Workspace.objects.all()
+  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions)
+  serializer_class = WorkspaceSerializer
+  
+  def create(self, request):
+    newname = self.request.QUERY_PARAMS.get('name')
+    return Response({"name":newname})
+  
+  

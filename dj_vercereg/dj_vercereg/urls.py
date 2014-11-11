@@ -15,6 +15,7 @@ router.register(r'rest/connections', views.ConnectionViewSet, base_name='connect
 router.register(r'rest/pe_implementations', views.PEImplementationViewSet, base_name='pe_implementation')
 router.register(r'rest/fn_implementations', views.FnImplementationViewSet, base_name='fn_implementation')
 
+router.register(r'rest/clone', views.CloneView, base_name='clone')
 
 urlpatterns = patterns('',
     # Examples:
