@@ -23,6 +23,12 @@ class ConnectionPermissions(permissions.BasePermission):
   def has_object_permission(self, request, view, obj):
     return request.user.is_superuser or request.user.is_staff or request.user == obj.pesig.user or len(request.user.groups.filter(name='default_read_all_group')) > 0
 
+
+class FunctionParameterPermissions(permissions.BasePermission):
+  def has_object_permission(self, request, view, obj):
+    return request.user.is_superuser or request.user.is_staff or request.user == obj.parent_function.user or len(request.user.groups.filter(name='default_read_all_group')) > 0
+  
+
 class UserAccessPermissions(permissions.BasePermission):
   '''Defines permissions for accessing REST user objects'''
   

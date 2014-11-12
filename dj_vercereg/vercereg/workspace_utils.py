@@ -1,5 +1,6 @@
 from vercereg.models import FnImplementation
 from vercereg.models import FunctionSig
+from vercereg.models import FunctionParameter
 from vercereg.models import LiteralSig
 from vercereg.models import PEImplementation
 from vercereg.models import PESig
@@ -34,6 +35,7 @@ class WorkspaceCloner:
     ret.pckg = pe.pckg
     ret.name = pe.name
     ret.creation_date = timezone.now() # Update the creation date/time;
+    ret.save() # Initial save
     for c in pe.connections:
       newconn = Connection()
       newconn.kind = c.kind
@@ -45,9 +47,24 @@ class WorkspaceCloner:
       newconn.modifiers = c.modifiers
       newconn.pesig = ret
     for p in pe.peimplementation_set:
-      newp = self.clone_peimpl(p) # foreign key doesn't need to be updated here
-    ret.save()
+      newp = self.clone_peimpl(p, ret) # foreign key doesn't need to be updated here
+    
+    # ret.save() # Update FIXME: Probably not needed...
     self.dic[pe] = ret
+    return ret
+
+  def clone_peimpl(self, peimpl, newparent=None):
+    if peimpl in self.dic: return self.dic[peimpl]
+    ret = PEImplementation()
+    ret.workspace = self.target_workspace
+    ret.pckg = peimpl.pckg
+    ret.name = peimpl.name
+    ret.creation_date = timezone.now()
+    ret.description = peimpl.description
+    ret.code = peimpl.code
+    if newparent: ret.parentsig = newparent
+    ret.save()
+    self.dic[peimpl] = ret
     return ret
     
   def clone_literal(self, lit):
@@ -59,18 +76,46 @@ class WorkspaceCloner:
     ret.creation_date = timezone.now()
     ret.description = lit.description
     ret.value = lit.value
+    
     ret.save()
     self.dic[lit] = ret
     return ret
   
   def clone_function(self, fun):
-    pass
+    if fun in self.dic: return self.dic[fun]
+    ret = FunctionSig()
+    ret.workspace = self.target_workspace
+    ret.pckg = fun.pckg
+    ret.name = fun.name
+    ret.creation_date = timezone.now()
+    ret.description = fun.description
+    ret.return_type = fun.return_type
+    ret.save()
+    for param in fun.functionparameter_set:
+      newparam = FunctionParameter()
+      newparam.param_name = param.param_name
+      newparam.param_type = param.param_type
+      newparam.parent_function = ret
+    for fnimpl in fun.fnimplementation_set:
+      newf = self.clone_fnimpl(fnimpl, ret)
+    
+    #ret.save()
+    self.dic[fun] = ret
+    return ret
   
-  def clone_peimpl(self, peimpl):
-    pass
-  
-  def clone_fnimpl(self, fnimpl):
-    pass
+  def clone_fnimpl(self, fnimpl, newparent=None):
+    if fnimpl in self.dic: return self.dic[fnimpl]
+    ret = PEImplementation()
+    ret.workspace = self.target_workspace
+    ret.pckg = fnimpl.pckg
+    ret.name = fnimpl.name
+    ret.creation_date = timezone.now()
+    ret.description = fnimpl.description
+    ret.code = fnimpl.code
+    if newparent: ret.parentsig = newparent
+    ret.save()
+    self.dic[fnimpl] = ret
+    return ret
   
 
   def clone(self):

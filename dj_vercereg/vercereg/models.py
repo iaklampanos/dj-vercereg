@@ -152,13 +152,13 @@ class FunctionSig(WorkspaceItem):
     unique_together = ('workspace', 'pckg', 'name')
 
 
-class FunctionParameters(models.Model):
+class FunctionParameter(models.Model):
   '''
-  A model representing a tuple of function parameters. Similar to connections, parameters only exist within their parent functions, they are therefore not made to be workspace items - these are their owning functions. 
+  A model representing a tuple of function parameters. Similar to connections, parameters only exist within their parent functions, they are therefore not made to be workspace items - these are their owning functions.
   '''
   param_name = models.CharField(max_length=30)
   param_type = models.CharField(max_length=30, null=True, blank=True, default=None)
-  parent_function = models.ForeignKey(FunctionSig)
+  parent_function = models.ForeignKey(FunctionSig, related_name='parameters')
   
 
 class WorkflowSig(WorkspaceItem):
@@ -211,7 +211,7 @@ reversion.register(WorkspaceItem)
 reversion.register(PESig)
 reversion.register(Connection)
 reversion.register(FunctionSig)
-reversion.register(FunctionParameters)
+reversion.register(FunctionParameter)
 reversion.register(LiteralSig)
 reversion.register(WorkflowSig)
 reversion.register(PEImplementation)

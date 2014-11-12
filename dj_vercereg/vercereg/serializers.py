@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User, Group
-from models import WorkspaceItem, Workspace, PESig, FunctionSig, LiteralSig, PEImplementation, FnImplementation, RegistryUserGroup, Connection
+from models import WorkspaceItem, Workspace, PESig, FunctionSig, LiteralSig, PEImplementation, FnImplementation, RegistryUserGroup, Connection, FunctionParameter
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 
@@ -129,12 +129,12 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
   def transform_peimplementations(self, obj, value):
     request = self.context.get('request')
     peimpls = obj.peimplementation_set.get_queryset()
-    return map(lambda p: get_base_rest_uri(request) + 'pe_implementations/' + str(p.id), peimpls)
+    return map(lambda p: get_base_rest_uri(request) + 'peimpls/' + str(p.id), peimpls)
   
   def transform_fnimplementations(self, obj, value):
     request = self.context.get('request')
     fnimpls = obj.fnimplementation_set.get_queryset()
-    return map(lambda p: get_base_rest_uri(request) + 'fn_implementations/' + str(p.id), fnimpls)
+    return map(lambda p: get_base_rest_uri(request) + 'fnimpls/' + str(p.id), fnimpls)
 
 
 ##############################################################################
@@ -149,11 +149,15 @@ class ConnectionSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = Connection
 
+class FunctionParameterSerializer(serializers.HyperlinkedModelSerializer):
+  class Meta:
+    model = FunctionParameter
+
 ##############################################################################
 class FunctionSigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = FunctionSig
-    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'creation_date', )
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'creation_date', 'return_type', 'parameters')
     read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################

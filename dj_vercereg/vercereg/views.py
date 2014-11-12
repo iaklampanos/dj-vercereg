@@ -1,4 +1,3 @@
-from datetime import datetime
 from django.utils import timezone
 
 from django.contrib.auth.models import Group
@@ -17,6 +16,7 @@ from rest_framework import status
 
 from vercereg.models import FnImplementation
 from vercereg.models import FunctionSig
+from vercereg.models import FunctionParameter
 from vercereg.models import LiteralSig
 from vercereg.models import PEImplementation
 from vercereg.models import PESig
@@ -29,6 +29,7 @@ from vercereg.permissions import WorkspaceBasedPermissions
 from vercereg.permissions import WorkspaceItemPermissions
 from vercereg.permissions import RegistryUserGroupAccessPermissions
 from vercereg.permissions import ConnectionPermissions
+from vercereg.permissions import FunctionParameterPermissions
 
 from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
@@ -43,6 +44,7 @@ from vercereg.serializers import UserUpdateSerializer
 from vercereg.serializers import WorkspaceSerializer
 from vercereg.serializers import WorkspaceDeepSerializer
 from vercereg.serializers import ConnectionSerializer
+from vercereg.serializers import FunctionParameterSerializer
 
 from rest_framework import permissions
 from rest_framework.decorators import api_view
@@ -165,7 +167,7 @@ class UserViewSet(viewsets.ModelViewSet):
   
   def create(self, request):
     '''Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)'''
-    reqdata = DATA
+    reqdata = request.DATA
     
     try:
       u = User.objects.create_user(username=reqdata['username'], password=reqdata['password'], email=reqdata['email'], first_name=reqdata['first_name'], last_name=reqdata['last_name'])
@@ -331,7 +333,6 @@ class PESigViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   def pre_save(self, obj):
-    print 'in pre_save'
     obj.creation_date = timezone.now()
     if not obj.pk:
       obj.user = self.request.user
@@ -348,7 +349,17 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
     if not obj.pk:
       obj.user = self.request.user
 
-# TODO: Not sure this is needed; it may need removing
+
+class FunctionParameterViewSet(viewsets.ModelViewSet):
+  permission_classes = (permissions.IsAuthenticated, FunctionParameterPermissions, )
+  queryset = FunctionParameter.objects.all()
+  serializer_class = FunctionParameterSerializer
+  
+  def list(self, request):
+    message = {'error':'listing function parameters is not permitted'}
+    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
 class ConnectionViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, ConnectionPermissions)
   queryset = Connection.objects.all()
@@ -358,7 +369,7 @@ class ConnectionViewSet(viewsets.ModelViewSet):
   def list(self, request):
     message = {'error':'listing connections is not permitted'}
     #TODO: Use a more appropriate ERROR code
-    return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
@@ -366,6 +377,12 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
   
   queryset = PEImplementation.objects.all()
   serializer_class = PEImplementationSerializer
+  
+  def pre_save(self, obj):
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
+  
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
@@ -374,5 +391,9 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
   queryset = FnImplementation.objects.all()
   serializer_class = FnImplementationSerializer
 
+  def pre_save(self, obj):
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
   
   
