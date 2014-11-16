@@ -53,6 +53,7 @@ INSTALLED_APPS = (
     'reversion',
     # 'django_pdb',
     'guardian',
+    'rest_framework_swagger',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -110,9 +111,9 @@ REST_FRAMEWORK = {
        'rest_framework.authentication.TokenAuthentication',
    ),
    'DEFAULT_PERMISSION_CLASSES': (
-       'rest_framework.permissions.IsAuthenticated'
+       'rest_framework.permissions.IsAuthenticated',
    ),
-   # 'PAGINATE_BY': 10,
+   'PAGINATE_BY': 10,
 }
 
 # For django guardian: ########################################
@@ -158,3 +159,37 @@ TEMPLATE_CONTEXT_PROCESSORS = TCP + (
     # misc
     # 'LIST_PER_PAGE': 15
 #}
+
+SWAGGER_SETTINGS = {
+    "exclude_namespaces": [], # List URL namespaces to ignore
+    "api_version": '0.1',  # Specify your API's version
+    "api_path": "/",  # Specify the path to your API not a root level
+    "enabled_methods": [  # Specify which methods to enable in Swagger UI
+        'get',
+        'post',
+        'put',
+        'patch',
+        'delete'
+    ],
+    "api_key": '4737f71829a7eff1e077268b89696ab536c26a11', # An API key
+    "is_authenticated": False,  # Set to True to enforce user authentication,
+    "is_superuser": False,  # Set to True to enforce admin only access
+    "permission_denied_handler": None, # If user has no permisssion, raise 403 error
+    "info": {
+        # Configure some Swagger UI variables, for details see:
+        # https://github.com/swagger-api/swagger-spec/blob/master/versions/1.2.md#513-info-object
+        'contact': 'iraklis.klampanos@ed.ac.uk',
+        'description': 'This is a sample server Petstore server. '
+                       'You can find out more about Swagger at '
+                       '<a href="http://swagger.wordnik.com">'
+                       'http://swagger.wordnik.com</a> '
+                       'or on irc.freenode.net, #swagger. '
+                       'For this sample, you can use the api key '
+                       '"special-key" to test '
+                       'the authorization filters',
+        'license': 'Apache 2.0',
+        'licenseUrl': 'http://www.apache.org/licenses/LICENSE-2.0.html',
+        'termsOfServiceUrl': '',
+        'title': 'VERCE dispel4py Registry',
+    },
+}

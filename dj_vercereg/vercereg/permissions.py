@@ -49,12 +49,9 @@ class WorkspaceItemPermissions(permissions.BasePermission):
 
   def has_object_permission(self, request, view, obj):
     if request.method in permissions.SAFE_METHODS:
-      print 'in safe'
       return request.user == obj.user or request.user.is_superuser or request.user.is_staff or len(request.user.groups.filter(name='default_read_all_group')) > 0
     else:
-      print obj
-      print 'in UNsafe'
-      print request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
+      # print request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
       
       return request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
 

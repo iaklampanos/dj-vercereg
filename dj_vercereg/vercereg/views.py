@@ -52,6 +52,7 @@ from rest_framework.decorators import api_view
 from django.db import transaction
 
 from vercereg.utils import extract_id_from_url
+from vercereg.utils import get_base_rest_uri
 from vercereg.workspace_utils import WorkspaceCloner
 
 import traceback
@@ -67,8 +68,18 @@ def set_workspace_default_permissions(wspc, user):
   assign_perm('vercereg.view_meta_workspace', user, wspc)
 
 
+# @api_view(('GET',))
+# def api_root(request, format=None):
+#   return Response({
+#     'users': reverse('user-list', request=request, format=format),
+#   })
+
+
 class WorkspaceViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.AllowAny,)#(permissions.IsAuthenticated, WorkspaceBasedPermissions, )
+  """
+  The workspace view.
+  """
+  permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
   
   queryset = Workspace.objects.all()
   serializer_class = WorkspaceSerializer
@@ -76,6 +87,33 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   def retrieve(self, request, pk=None):
     allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations']
     wspc = get_object_or_404(self.queryset, pk=pk)
+    
+    if 'ls' in self.request.QUERY_PARAMS:
+      pes = list(PESig.objects.filter(workspace = wspc))
+      functions = list(FunctionSig.objects.filter(workspace=wspc))
+      literals = list(LiteralSig.objects.filter(workspace=wspc))
+      fnimpls = list(FnImplementation.objects.filter(workspace=wspc))
+      peimpls = list(PEImplementation.objects.filter(workspace=wspc))
+      packages = []
+      
+      # collect all the packages
+      pckg_set = set([])
+      for i in pes+functions+literals+fnimpls+peimpls:
+        pckg_set.add(i.pckg)
+      packages = list(pckg_set)
+      packages.sort()
+      
+      # FIXME: get_base_rest_uri depends on request - insecure - can be spoofed.
+      dataret = {}
+      dataret['pes'] = [{get_base_rest_uri(request)+'pes/' + str(x.id):x.pckg +'.' + x.name} for x in pes]
+      dataret['functions'] = [{get_base_rest_uri(request)+'functions/' + str(x.id):x.pckg +'.' + x.name} for x in functions]
+      dataret['literals'] = [{get_base_rest_uri(request)+'literals/' + str(x.id):x.pckg +'.' + x.name} for x in literals]
+      dataret['peimpls'] = [{get_base_rest_uri(request)+'peimpls/' + str(x.id):x.pckg +'.' + x.name} for x in peimpls]
+      dataret['fnimpls'] = [{get_base_rest_uri(request)+'fnimpls/' + str(x.id):x.pckg +'.' + x.name} for x in fnimpls]
+      dataret['packages'] = packages
+      
+      return Response(dataret)
+        
     kind_to_show = self.request.QUERY_PARAMS.get('kind')
     if not kind_to_show or kind_to_show not in allowed_kinds_to_show:
       self.check_object_permissions(request, wspc)
@@ -107,16 +145,16 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         serializer = PEImplementationSerializer(items, many=True, context={'request': request})
       return Response(serializer.data)
 
-  def clone_workspace(self, clone_of):
-    print 'Cloning ' + str(clone_of)
-    return Response(self.request.user)
-
   def create(self, request):
     clone_of = self.request.QUERY_PARAMS.get('clone_of')
     if not clone_of:
       return super(WorkspaceViewSet, self).create(request)
     try:
-      or_wspc = Workspace.objects.get(id=clone_of)
+      cid = int(clone_of)
+      or_wspc = Workspace.objects.get(id=cid)
+    except ValueError:
+      msg = {'error':'%s is not a valid workspace id'%(clone_of)}
+      return Response(msg, status=status.HTTP_400_BAD_REQUEST)
     except:
       msg = {'error':'could not retrieve workspace with id %s'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
@@ -126,7 +164,12 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
     cloner = WorkspaceCloner(or_wspc, self.request.DATA.get('name'), request.user)
-    cloned_workspace = cloner.clone()
+    try:
+      with transaction.atomic():
+        cloned_workspace = cloner.clone()
+    except:
+      msg = {'error':'could not complete workspace cloning'}
+      return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     serializer = WorkspaceSerializer(cloned_workspace, many=False, context={'request': request})
     return Response(serializer.data)
   
@@ -227,7 +270,6 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   
   
   def get_serializer_class(self):
-    print type(self.request.user)
     if self.request.user.is_superuser or self.request.user.is_staff:
       return AdminRegistryUserGroupSerializer
     else:
@@ -236,9 +278,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   
   @transaction.atomic
   def create(self, request):
-    print 'creating registry user group'
     reqdata = request.DATA
-    print 'Request data:', str(reqdata)
     
     # Create a new group
     try:
@@ -268,7 +308,6 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   @transaction.atomic
   def update(self, request, pk=None):
     rug = RegistryUserGroup.objects.get(pk=pk)
-    #print 'Updating (PUT) RegistryUserGroup:', str(rug.group.name)
     
     # Update the group:
     g = rug.group
@@ -277,7 +316,6 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
       g.save()
     
     # Update the registryusergroup
-    print request.DATA['owner']
     # FIXME Using manual id extraction, there must be a better way...
     id = extract_id_from_url(request.DATA['owner'])
     user = User.objects.get(id=id)
@@ -290,11 +328,6 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   
-  # def partial_update(self, request, pk=None):
-  #   print 'partial update called'
-  #   pass
-
-
 class GroupViewSet(viewsets.ModelViewSet):
   permission_classes = (permissions.IsAuthenticated, )
   
@@ -321,16 +354,16 @@ class PESigViewSet(viewsets.ModelViewSet):
   queryset = PESig.objects.all()
   serializer_class = PESigSerializer
   
-  def list(self, request):
-    viewable = []
-    for pe in self.queryset:
-      try:
-        self.check_object_permissions(request, pe)
-        viewable.append(pe)
-      except:
-        pass
-    serializer = PESigSerializer(viewable, many=True, context={'request':request})
-    return Response(serializer.data)
+  # def list(self, request):
+  #   viewable = []
+  #   for pe in self.queryset:
+  #     try:
+  #       self.check_object_permissions(request, pe)
+  #       viewable.append(pe)
+  #     except:
+  #       pass
+  #   serializer = PESigSerializer(viewable, many=True, context={'request':request})
+  #   return Response(serializer.data)
   
   def pre_save(self, obj):
     obj.creation_date = timezone.now()

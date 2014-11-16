@@ -35,8 +35,9 @@ class WorkspaceCloner:
     ret.pckg = pe.pckg
     ret.name = pe.name
     ret.creation_date = timezone.now() # Update the creation date/time;
+    ret.user = self.user
     ret.save() # Initial save
-    for c in pe.connections:
+    for c in pe.connections.all():
       newconn = Connection()
       newconn.kind = c.kind
       newconn.name = c.name
@@ -46,7 +47,8 @@ class WorkspaceCloner:
       newconn.is_array = c.is_array
       newconn.modifiers = c.modifiers
       newconn.pesig = ret
-    for p in pe.peimplementation_set:
+      newconn.save()
+    for p in pe.peimplementation_set.all():
       newp = self.clone_peimpl(p, ret) # foreign key doesn't need to be updated here
     
     # ret.save() # Update FIXME: Probably not needed...
@@ -62,7 +64,9 @@ class WorkspaceCloner:
     ret.creation_date = timezone.now()
     ret.description = peimpl.description
     ret.code = peimpl.code
-    if newparent: ret.parentsig = newparent
+    ret.user = self.user
+    if newparent: ret.parent_sig = newparent
+    
     ret.save()
     self.dic[peimpl] = ret
     return ret
@@ -76,6 +80,7 @@ class WorkspaceCloner:
     ret.creation_date = timezone.now()
     ret.description = lit.description
     ret.value = lit.value
+    ret.user = self.user
     
     ret.save()
     self.dic[lit] = ret
@@ -90,13 +95,16 @@ class WorkspaceCloner:
     ret.creation_date = timezone.now()
     ret.description = fun.description
     ret.return_type = fun.return_type
+    ret.user = self.user
+    
     ret.save()
-    for param in fun.functionparameter_set:
+    for param in fun.parameters.all():
       newparam = FunctionParameter()
       newparam.param_name = param.param_name
       newparam.param_type = param.param_type
       newparam.parent_function = ret
-    for fnimpl in fun.fnimplementation_set:
+      newparam.save()
+    for fnimpl in fun.fnimplementation_set.all():
       newf = self.clone_fnimpl(fnimpl, ret)
     
     #ret.save()
@@ -105,14 +113,16 @@ class WorkspaceCloner:
   
   def clone_fnimpl(self, fnimpl, newparent=None):
     if fnimpl in self.dic: return self.dic[fnimpl]
-    ret = PEImplementation()
+    ret = FnImplementation()
     ret.workspace = self.target_workspace
     ret.pckg = fnimpl.pckg
     ret.name = fnimpl.name
     ret.creation_date = timezone.now()
     ret.description = fnimpl.description
     ret.code = fnimpl.code
-    if newparent: ret.parentsig = newparent
+    if newparent: ret.parent_sig = newparent
+    ret.user = self.user
+    
     ret.save()
     self.dic[fnimpl] = ret
     return ret
@@ -120,7 +130,8 @@ class WorkspaceCloner:
 
   def clone(self):
     '''Deep clone the original workspace into the target and return it.'''
-    print 'Cloning ' + str(self.original_workspace)
+    # print 'Cloning ' + str(self.original_workspace)
+    
     self.target_workspace = Workspace(name=self.name, owner=self.user, creation_date=timezone.now(), description=self.original_workspace.description)
     self.target_workspace.save()
     
@@ -139,4 +150,4 @@ class WorkspaceCloner:
     for fnimpl in self.original_workspace.get_fnimplementations():
       self.dic[fnimpl] = self.clone_fnimpl(fnimpl)
     
-    return None
+    return self.target_workspace
