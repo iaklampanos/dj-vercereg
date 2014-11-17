@@ -167,26 +167,17 @@ SWAGGER_SETTINGS = {
     "enabled_methods": [  # Specify which methods to enable in Swagger UI
         'get',
         'post',
-        'put',
-        'patch',
-        'delete'
+        'put'
     ],
-    "api_key": '4737f71829a7eff1e077268b89696ab536c26a11', # An API key
-    "is_authenticated": False,  # Set to True to enforce user authentication,
-    "is_superuser": False,  # Set to True to enforce admin only access
+    # "api_key": '4737f71829a7eff1e077268b89696ab536c26a11', # An API key
+    "is_authenticated": True,  # Set to True to enforce user authentication,
+    "is_superuser": True,  # Set to True to enforce admin only access
     "permission_denied_handler": None, # If user has no permisssion, raise 403 error
     "info": {
         # Configure some Swagger UI variables, for details see:
         # https://github.com/swagger-api/swagger-spec/blob/master/versions/1.2.md#513-info-object
         'contact': 'iraklis.klampanos@ed.ac.uk',
-        'description': 'This is a sample server Petstore server. '
-                       'You can find out more about Swagger at '
-                       '<a href="http://swagger.wordnik.com">'
-                       'http://swagger.wordnik.com</a> '
-                       'or on irc.freenode.net, #swagger. '
-                       'For this sample, you can use the api key '
-                       '"special-key" to test '
-                       'the authorization filters',
+        'description': '',
         'license': 'Apache 2.0',
         'licenseUrl': 'http://www.apache.org/licenses/LICENSE-2.0.html',
         'termsOfServiceUrl': '',

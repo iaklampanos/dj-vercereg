@@ -35,7 +35,7 @@ from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
 from vercereg.serializers import GroupSerializer
 from vercereg.serializers import RegistryUserGroupSerializer
-from vercereg.serializers import AdminRegistryUserGroupSerializer
+# from vercereg.serializers import AdminRegistryUserGroupSerializer
 from vercereg.serializers import LiteralSigSerializer
 from vercereg.serializers import PEImplementationSerializer
 from vercereg.serializers import PESigSerializer
@@ -68,16 +68,91 @@ def set_workspace_default_permissions(wspc, user):
   assign_perm('vercereg.view_meta_workspace', user, wspc)
 
 
+class RegistryUserGroupViewSet(viewsets.ModelViewSet):
+  ''' Registry user group resource.  '''
+  
+  permission_classes = (permissions.IsAuthenticated, RegistryUserGroupAccessPermissions)
+  
+  queryset = RegistryUserGroup.objects.all()
+  serializer_class = RegistryUserGroupSerializer
+  
+  # def get_serializer_class(self):
+  #   if self.request.user.is_superuser or self.request.user.is_staff:
+  #     return AdminRegistryUserGroupSerializer
+  #   else:
+  #     return RegistryUserGroupSerializer
+  
+  @transaction.atomic
+  def create(self, request):
+    reqdata = request.DATA
+    
+    # Create a new group
+    try:
+      g = Group(name=reqdata['group_name'])
+      g.save()
+    except:
+      return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Extract owner
+    try:
+      ownerurl = reqdata['owner']
+      # FIXME Using manual id extraction, there must be a better way...
+      oid = extract_id_from_url(ownerurl)
+      o = User.objects.get(id=oid)
+    except:
+      return Response({'error resolving group owner':'the user may not exist in the DB, or bad request.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+      rug = RegistryUserGroup(group=g, description=reqdata['description'], owner=o)
+      rug.save()
+    except:
+      return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request':request})
+    return Response(serializer.data)
+  
+  
+  @transaction.atomic
+  def update(self, request, pk=None):
+    rug = RegistryUserGroup.objects.get(pk=pk)
+    
+    # Update the group:
+    g = rug.group
+    if (g.name != request.DATA['group_name']):
+      g.name = request.DATA['group_name']
+      g.save()
+    
+    # Update the registryusergroup
+    # FIXME Using manual id extraction, there must be a better way...
+    id = extract_id_from_url(request.DATA['owner'])
+    user = User.objects.get(id=id)
+    rug.owner = user
+    rug.description = request.DATA['description']
+    
+    # Save the registryusergroup
+    rug.save()
+    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request': request})
+    return Response(serializer.data)
+  
+
+
 class WorkspaceViewSet(viewsets.ModelViewSet):
-  """
-  The workspace view.
-  """
+  ''' Workspace resource. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
   
   queryset = Workspace.objects.all()
   serializer_class = WorkspaceSerializer
   
   def retrieve(self, request, pk=None):
+    ''' Returns a workspace instance.
+        --- 
+        parameters:
+          - name: ls
+            description: Lists the contents of the given workspace, as well as the packages contained.
+            paramType: query
+          - name: kind
+            description: Lists details of the requested type of workspace item. Valid values are pes, functions, literals, peimpls and fnimpls.
+            paramType: query
+    '''
     allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations']
     wspc = get_object_or_404(self.queryset, pk=pk)
     
@@ -139,6 +214,19 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
       return Response(serializer.data)
 
   def create(self, request):
+    '''
+    Create a new workspace, or clone an existing one. In the case of cloning only the field name is taken into account.
+    ---
+    parameters:
+      - name: name
+        description: the name of the workspace.
+      - name: description
+        description: a textual description of the workspace.
+      - name: clone_of
+        description: indicates that a cloning operation is requested.
+        paramType: query
+        type: long 
+    '''
     clone_of = self.request.QUERY_PARAMS.get('clone_of')
     if not clone_of:
       return super(WorkspaceViewSet, self).create(request)
@@ -147,24 +235,20 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     try:
       cid = int(clone_of)
       or_wspc = Workspace.objects.get(id=cid)
-      #check permissions for wspc
       self.check_object_permissions(request, or_wspc)
     except ValueError:
       msg = {'error':'%s is not a valid workspace id'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
-      # return Response(msg, status=1000)
     except PermissionDenied:
       msg = {'error':'unauthorized access'}
       return Response(msg, status=status.HTTP_401_UNAUTHORIZED)
     except:
       msg = {'error':'could not retrieve workspace with id %s'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
-      # return Response(msg, status=1001)
       
     if not self.request.DATA.get('name'):
       msg = {'error':'name is required'}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
-      # return Response(msg, status=1002)
 
     cloner = WorkspaceCloner(or_wspc, self.request.DATA.get('name'), request.user)
     try:
@@ -177,6 +261,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   def list(self, request):
+    ''' Retrieve a list of workspaces. '''
     allowed_workspaces = []
     for w in self.queryset:
       try:
@@ -202,12 +287,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+  ''' User resource. '''
   permission_classes = (permissions.IsAuthenticated, UserAccessPermissions)
   
   queryset = User.objects.all()
   serializer_class = UserSerializer
   
   def list(self, request):
+    ''' Returns a list of users. '''
     allowed_users = []
     for u in self.queryset:
       try:
@@ -220,7 +307,8 @@ class UserViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
   
   def create(self, request):
-    '''Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)'''
+    ''' Creates a new user in the registry. '''
+    # Performs the following: It creates a new user, it creates a new registry user group (with its associated group), it assigns the new user as the owner of the group, and it finally makes user a member of the new group. It returns the regular serialized version of the newly created user. (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)
     reqdata = request.DATA
     
     try:
@@ -273,73 +361,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 
-class RegistryUserGroupViewSet(viewsets.ModelViewSet):
-  permission_classes = (permissions.IsAuthenticated, RegistryUserGroupAccessPermissions)
-  
-  queryset = RegistryUserGroup.objects.all()
-  serializer_class = RegistryUserGroupSerializer
-  
-  
-  def get_serializer_class(self):
-    if self.request.user.is_superuser or self.request.user.is_staff:
-      return AdminRegistryUserGroupSerializer
-    else:
-      return RegistryUserGroupSerializer
-  
-  
-  @transaction.atomic
-  def create(self, request):
-    reqdata = request.DATA
-    
-    # Create a new group
-    try:
-      g = Group(name=reqdata['group_name'])
-      g.save()
-    except:
-      return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    # Extract owner
-    try:
-      ownerurl = reqdata['owner']
-      # FIXME Using manual id extraction, there must be a better way...
-      oid = extract_id_from_url(ownerurl)
-      o = User.objects.get(id=oid)
-    except:
-      return Response({'error resolving group owner':'the user may not exist in the DB, or bad request.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-      rug = RegistryUserGroup(group=g, description=reqdata['description'], owner=o)
-      rug.save()
-    except:
-      return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request':request})
-    return Response(serializer.data)
-  
-  
-  @transaction.atomic
-  def update(self, request, pk=None):
-    rug = RegistryUserGroup.objects.get(pk=pk)
-    
-    # Update the group:
-    g = rug.group
-    if (g.name != request.DATA['group_name']):
-      g.name = request.DATA['group_name']
-      g.save()
-    
-    # Update the registryusergroup
-    # FIXME Using manual id extraction, there must be a better way...
-    id = extract_id_from_url(request.DATA['owner'])
-    user = User.objects.get(id=id)
-    rug.owner = user
-    rug.description = request.DATA['description']
-    
-    # Save the registryusergroup
-    rug.save()
-    serializer = RegistryUserGroupSerializer(rug, many=False, context={'request': request})
-    return Response(serializer.data)
-  
   
 class GroupViewSet(viewsets.ModelViewSet):
+  ''' Basic user group resource. '''
+  
   permission_classes = (permissions.IsAuthenticated, )
   
   queryset = Group.objects.all()
@@ -348,6 +373,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 class LiteralSigViewSet(viewsets.ModelViewSet):
+  ''' Literal entities resource. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
   
   queryset = LiteralSig.objects.all()
@@ -360,6 +386,7 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
 
 
 class PESigViewSet(viewsets.ModelViewSet):
+  ''' PE resource. Allows addition and manipulation of dispel4py processing elements (PEs). '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
   
   queryset = PESig.objects.all()
@@ -383,6 +410,7 @@ class PESigViewSet(viewsets.ModelViewSet):
       
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
+  ''' Function resource. Allows addition and manipulation of dispel4py functions. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = FunctionSig.objects.all()
@@ -395,6 +423,7 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
 
 
 class FunctionParameterViewSet(viewsets.ModelViewSet):
+  ''' Function parameter resource. Allows the addition and manipulation of function parameters. Function parameters are associated with functions and are not themselves workspace items. '''
   permission_classes = (permissions.IsAuthenticated, FunctionParameterPermissions, )
   queryset = FunctionParameter.objects.all()
   serializer_class = FunctionParameterSerializer
@@ -405,6 +434,7 @@ class FunctionParameterViewSet(viewsets.ModelViewSet):
 
 
 class ConnectionViewSet(viewsets.ModelViewSet):
+  ''' PE Connection resource. Allows the addition and manipulation of PE connections. Connections are associated with PEs and are not themselves workspace items. '''
   permission_classes = (permissions.IsAuthenticated, ConnectionPermissions)
   queryset = Connection.objects.all()
   serializer_class = ConnectionSerializer
@@ -417,6 +447,7 @@ class ConnectionViewSet(viewsets.ModelViewSet):
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
+  ''' PE Implementation resource. Allows the creation and manipulation of PE implementations. PEs may have one or more implementations. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = PEImplementation.objects.all()
@@ -430,6 +461,7 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
+  ''' Function implementation resource. Allows the creation and manipulation of function implementations. Function entities may have one or more implementations. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
   
   queryset = FnImplementation.objects.all()

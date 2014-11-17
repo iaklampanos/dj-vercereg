@@ -22,13 +22,14 @@ urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'dj_vercereg.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
-
+    
+    url(r'^docs/', include('rest_framework_swagger.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^', include(router.urls)),
     # url(r'^rest/$', 'api_root'),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api-token-auth/', 'rest_framework.authtoken.views.obtain_auth_token'),
-    url(r'^docs/', include('rest_framework_swagger.urls')),
+    
 
 )
 

@@ -32,7 +32,7 @@ class RegistryUserGroup(models.Model):
 class Workspace(models.Model):
   ''' The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name. '''
   
-  name = models.CharField(max_length=100)
+  name = models.CharField(max_length=100, null=False, blank=False)
   owner = models.ForeignKey(User)
   description = models.TextField(null=True, blank=True)
   unique_together = (("owner", "name"),)
