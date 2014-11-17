@@ -76,6 +76,9 @@ class WorkspaceBasedPermissions(permissions.BasePermission):
       if request.method == 'PUT':
         has_modify_meta_perms = request.user.has_perm('modify_meta_workspace', obj)
         return has_modify_meta_perms or is_superuser or is_owner
+      elif request.method == 'POST':
+        has_view_contents = request.user.has_perm('view_contents_workspace', obj)
+        return has_view_contents or is_superuser or is_owner
       elif request.method == 'DELETE':
         return is_superuser
       else:

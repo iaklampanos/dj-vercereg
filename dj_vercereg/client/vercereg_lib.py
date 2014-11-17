@@ -22,16 +22,16 @@ class VerceRegManager:
 
   # REST service URL suffixes
   URL_AUTH = '/api-token-auth/'
-  URL_USERS = '/rest/users/'
-  URL_REGISTRYUSERGROUPS = '/rest/registryusergroups/'
-  URL_GROUPS = '/rest/groups/'
-  URL_WORKSPACES = '/rest/workspaces/'
-  URL_PES = '/rest/pes/'
-  URL_FNS = '/rest/functions/'
-  URL_LITS = '/rest/literals/'
-  URL_CONNS = '/rest/connections/'
-  URL_PEIMPLS = '/rest/pe_implementations/'
-  URL_FNIMPLS = '/rest/fn_implementations/'
+  URL_USERS = '/users/'
+  URL_REGISTRYUSERGROUPS = '/registryusergroups/'
+  URL_GROUPS = '/groups/'
+  URL_WORKSPACES = '/workspaces/'
+  URL_PES = '/pes/'
+  URL_FNS = '/functions/'
+  URL_LITS = '/literals/'
+  URL_CONNS = '/connections/'
+  URL_PEIMPLS = '/pe_implementations/'
+  URL_FNIMPLS = '/fn_implementations/'
 
   # Default package names depending on the type of the registrable item
   DEF_PKG_PES='pes'

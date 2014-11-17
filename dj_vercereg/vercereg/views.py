@@ -59,20 +59,13 @@ import traceback
 import sys
 
 def set_workspace_default_permissions(wspc, user):
-  ''' Sets the default permissions to a newly created workspace, whose creator is user '''
+  '''Sets the default permissions to a newly created workspace.'''
   assign_perm('modify_contents_workspace', user, wspc)
   assign_perm('change_groupobjectpermission', user, wspc)
   assign_perm('add_userobjectpermission', user, wspc)
   assign_perm('vercereg.modify_contents_workspace', user, wspc)
   assign_perm('vercereg.view_contents_workspace', user, wspc)
   assign_perm('vercereg.view_meta_workspace', user, wspc)
-
-
-# @api_view(('GET',))
-# def api_root(request, format=None):
-#   return Response({
-#     'users': reverse('user-list', request=request, format=format),
-#   })
 
 
 class WorkspaceViewSet(viewsets.ModelViewSet):
@@ -149,19 +142,29 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     clone_of = self.request.QUERY_PARAMS.get('clone_of')
     if not clone_of:
       return super(WorkspaceViewSet, self).create(request)
+    
+    # Check permissions
     try:
       cid = int(clone_of)
       or_wspc = Workspace.objects.get(id=cid)
+      #check permissions for wspc
+      self.check_object_permissions(request, or_wspc)
     except ValueError:
       msg = {'error':'%s is not a valid workspace id'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+      # return Response(msg, status=1000)
+    except PermissionDenied:
+      msg = {'error':'unauthorized access'}
+      return Response(msg, status=status.HTTP_401_UNAUTHORIZED)
     except:
       msg = {'error':'could not retrieve workspace with id %s'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+      # return Response(msg, status=1001)
       
     if not self.request.DATA.get('name'):
       msg = {'error':'name is required'}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+      # return Response(msg, status=1002)
 
     cloner = WorkspaceCloner(or_wspc, self.request.DATA.get('name'), request.user)
     try:
@@ -186,8 +189,16 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
-    if not obj.pk:
+    if not obj.pk: # this is an update
       obj.owner = self.request.user
+  
+  def post_save(self, obj, created):
+    if created:
+      assign_perm('vercereg.modify_meta_workspace', self.request.user, obj)
+      assign_perm('vercereg.modify_contents_workspace', self.request.user, obj)
+      assign_perm('vercereg.view_contents_workspace', self.request.user, obj)
+      assign_perm('vercereg.view_meta_workspace', self.request.user, obj)
+      # TODO: Add change/delete workspace - don't know what's the correct permissions to set / Internet
 
 
 class UserViewSet(viewsets.ModelViewSet):

@@ -90,19 +90,45 @@ class DefaultValuesTestCase(TestCase):
     g = Group.objects.all().get(name='default_read_all_group')
     rug = RegistryUserGroup.objects.all().get(group=g)
     self.assertIsNotNone(rug)
-    
 
+    
+# TODO: Implement authentication/authorization/access test cases: 
 class AuthorizationTestCase(TestCase):
   fixtures = ['fixtures/def_group.json',]
 
   def setUp(self):
     self.factory = RequestFactory()
-    self.bob = create_ref_user('bob')
+    self.bob = create_ref_user()
+    self.pat = create_ref_user('pat', 'pat')
+    
+    # create a couple of workspaces
+    self.bob_wspc = create_ref_workspace(owner=self.bob)
+    self.pat_wspc = create_ref_workspace(owner=self.pat)
+    
+    # create a couple PEs in the 1st workspace (default)
+    pe1 = create_ref_pe()
+    pe2 = create_ref_pe()
+    create_ref_conn(pe1, name='alpha')
+    create_ref_conn(pe1, name='beta', kind='Out')
+    create_ref_conn(pe2, name='gamma')
+    create_ref_peimpl(pe1, name='ImplPE1forBOB')
+    
+    # create a function in the default workspace
+    fn = create_ref_fn(workspace=self.bob_wspc)
+    create_ref_fn_param(fn)
+    create_ref_fnimpl(fn, name="refImplforFunctioninBOB")
+    
     
   def test_log_in(self):
     c = Client()
     response = c.post('/api-token-auth/', {'username':'bob', 'password':'bob'})
-    assert response.status_code == status.HTTP_200_OK
+    self.assertEquals(response.status_code, status.HTTP_200_OK)
+    self.assertTrue('token' in response.data)
+
+  def test_pe_access(self):
+    c = Client()
+    c.login()
+    
 
 # TODO: Implement the workspace test case
 class WorkspaceTestCase(TestCase):
@@ -162,15 +188,15 @@ class WorkspaceTestCase(TestCase):
     c = Client()
     login_result = c.login(username='bob', password='bob')
     self.assertTrue(login_result)
-    response = c.post('/rest/workspaces/?clone_of=1', {'name':'bobnewspace'})
+    self.assertEqual(self.bob_wspc.name, 'bob_wspc')
+    response = c.post('/workspaces/?clone_of='+str(self.bob_wspc.id), {'name':'bobnewspace'})
     self.assertEqual(response.status_code, status.HTTP_200_OK)
     
     # check contents:
-    w = Workspace.objects.get(id=1)
+    w = self.bob_wspc
     cw = Workspace.objects.get(name='bobnewspace')
     self.assertIsNotNone(cw)
     self.assertEqual(cw.name, 'bobnewspace')
-    self.assertEqual(cw.id, 3)
     self.assertEqual(len(cw.pesig_set.values()), len(w.pesig_set.values()))
     self.assertEqual(len(cw.peimplementation_set.values()), len(w.peimplementation_set.values()))
     self.assertEqual(len(cw.functionsig_set.values()), len(w.functionsig_set.values()))

@@ -137,17 +137,16 @@ class WorkspaceCloner:
     
     for pe in self.original_workspace.get_pesigs():
       self.dic[pe] = self.clone_pe(pe)
-    
     for lit in self.original_workspace.get_literalsigs():
       self.dic[lit] = self.clone_literal(lit)
-    
     for fn in self.original_workspace.get_fnsigs():
       self.dic[fn] = self.clone_function(fn)
-    
     for peimpl in self.original_workspace.get_peimplementations():
       self.dic[peimpl] = self.clone_peimpl(peimpl)
-    
     for fnimpl in self.original_workspace.get_fnimplementations():
       self.dic[fnimpl] = self.clone_fnimpl(fnimpl)
+    
+    # TODO: Give self.user all permissions on the new workspace 
+    
     
     return self.target_workspace
