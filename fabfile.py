@@ -2,6 +2,7 @@ from fabric.api import *
 
 env.user = 'djvercereg'
 env.hosts = ['escience8.inf.ed.ac.uk',]
+env.project_root = '/var/www/vercereg/dj_vercereg'
 
 def prepare_deployment():
   local('python manage.py test')
@@ -9,8 +10,5 @@ def prepare_deployment():
   # local('git checkout master && git merge ' + branch_name)
 
 def deploy():
-  with lcd('/path/to/my/prod/area/'):
-    run('git pull /my/path/to/dev/area/')
-    run('python manage.py migrate')
-    run('python manage.py test')
-    run('/usr/sbin/service apache2 restart')
+  with cd(env.project_root):
+    run('./manage.py collectstatic -v0 --noinput')
