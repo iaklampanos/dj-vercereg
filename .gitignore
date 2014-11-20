@@ -55,3 +55,6 @@ target/
 
 # deployment script
 fabfile.py
+
+local_settings.py
+
