@@ -96,7 +96,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   #   else:
   #     return RegistryUserGroupSerializer
   
-  @transaction.atomic
+  @transaction.atomic 
   def create(self, request):
     reqdata = request.DATA
     
