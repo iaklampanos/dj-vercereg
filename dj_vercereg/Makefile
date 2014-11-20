@@ -14,6 +14,7 @@
 
 # General convenience makefile for the dj-vercereg project
 
+
 DB_USER=root
 DB_PASS=root
 DB_EXEC=mysql
