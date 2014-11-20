@@ -34,7 +34,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = 'vzb127q8k@vz5mqt5ct-(20ddyaklr4kuy^65!8+az0u)a!*^s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
@@ -85,19 +85,6 @@ ROOT_URLCONF = 'dj_vercereg.urls'
 WSGI_APPLICATION = 'dj_vercereg.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/1.7/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dj_vercereg',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
-}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
@@ -202,3 +189,8 @@ SWAGGER_SETTINGS = {
         'title': 'VERCE dispel4py Registry',
     },
 }
+
+try:
+  from local_settings import *
+except ImportError:
+  pass
