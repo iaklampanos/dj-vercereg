@@ -125,10 +125,61 @@ class AuthorizationTestCase(TestCase):
     self.assertEquals(response.status_code, status.HTTP_200_OK)
     self.assertTrue('token' in response.data)
 
-  def test_pe_access(self):
-    c = Client()
-    c.login()
+  # TODO Implement
+  def test_workspace_listing(self):
+    # Test user with view_meta_workspace can get a listing of 2 workspaces
+    # Test user without view_meta_workspace and not owner receives empty list
+    # Test user without view_meta_workspace and owner receives only own workspaces
     
+  # TODO Implement
+  def test_workspace_contents(self):
+    # Test user with view_content_workspace can get contents of a workspace
+    # Test user without view_content_workspace gets 403 response
+    
+  # TODO Implement
+  def test_workspaceitem_access(self):
+    # Test user owning the workspace views a contained PE
+    # Test user owning the workspace views a contained function
+    # Test user owning the workspace views a contained literal
+    # Test user owning the workspace views a contained peimpl
+    # Test user owning the workspace views a contained fnimpl
+    # Test user not owning but with view_content_workspace views a contained PE
+    # Test user not owning but with view_content_workspace views a contained function
+    # Test user not owning but with view_content_workspace views a contained literal
+    # Test user not owning but with view_content_workspace views a contained peimpl
+    # Test user not owning but with view_content_workspace views a contained fnimpl
+    # Test user not owning and without view_content_workspace cannot view a contained PE
+    # Test user not owning and without view_content_workspace cannot view a contained functio 
+    # Test user not owning and without view_content_workspace cannot view a contained literal
+    # Test user not owning and without view_content_workspace cannot view a contained peimpl
+    # Test user not owning and without view_content_workspace cannot view a contained fnimpl
+    c = Client()
+    c.login(username='bob', password='bob')
+    
+  #TODO Implement
+  def test_workspace_modify(self):
+    # Test user with modify_contents_workspace changing the title of workspace
+    # Test user with modify_contents_workspace modifying an existing PE
+    # Test user with modify_contents_workspace modifying an existing function
+    # Test user with modify_contents_workspace modifying an existing literal
+    # Test user with modify_contents_workspace modifying an existing peimpl
+    # Test user with modify_contents_workspace modifying an existing fnimpl
+    
+
+  def test_workspace_add(self):
+    # Test user with modify_contents_workspace adding a new PE
+    # Test user with modify_contents_workspace adding a new function
+    # Test user with modify_contents_workspace adding a new literal
+    # Test user with modify_contents_workspace adding a new peimpl
+    # Test user with modify_contents_workspace adding a new fnimpl
+
+  def test_workspace_write_denied(self):
+    # Test user with read but not write that s/he
+    # (1) Can read but cannot modify a PE
+    # (2) Can read but not modify a function
+    # (3) Can read but not modify a literal
+    # (4) Can read but not modify a peimpl
+    # (5) Can read but not modify a fnimpl
 
 # TODO: Implement the workspace test case
 class WorkspaceTestCase(TestCase):
