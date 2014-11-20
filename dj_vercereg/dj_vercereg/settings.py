@@ -79,7 +79,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
-
+ 
 ROOT_URLCONF = 'dj_vercereg.urls'
 
 WSGI_APPLICATION = 'dj_vercereg.wsgi.application'
