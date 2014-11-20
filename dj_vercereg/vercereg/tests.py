@@ -144,11 +144,13 @@ class AuthorizationTestCase(TestCase):
     # Test user with view_meta_workspace can get a listing of 2 workspaces
     # Test user without view_meta_workspace and not owner receives empty list
     # Test user without view_meta_workspace and owner receives only own workspaces
+    pass
     
   # TODO Implement
   def test_workspace_contents(self):
     # Test user with view_content_workspace can get contents of a workspace
     # Test user without view_content_workspace gets 403 response
+    pass
     
   # TODO Implement
   def test_workspaceitem_access(self):
@@ -169,6 +171,7 @@ class AuthorizationTestCase(TestCase):
     # Test user not owning and without view_content_workspace cannot view a contained fnimpl
     c = Client()
     c.login(username='bob', password='bob')
+    pass
     
   #TODO Implement
   def test_workspace_modify(self):
@@ -178,7 +181,7 @@ class AuthorizationTestCase(TestCase):
     # Test user with modify_contents_workspace modifying an existing literal
     # Test user with modify_contents_workspace modifying an existing peimpl
     # Test user with modify_contents_workspace modifying an existing fnimpl
-    
+    pass
 
   def test_workspace_add(self):
     # Test user with modify_contents_workspace adding a new PE
@@ -186,6 +189,7 @@ class AuthorizationTestCase(TestCase):
     # Test user with modify_contents_workspace adding a new literal
     # Test user with modify_contents_workspace adding a new peimpl
     # Test user with modify_contents_workspace adding a new fnimpl
+    pass
 
   def test_workspace_write_denied(self):
     # Test user with read but not write that s/he
@@ -194,6 +198,7 @@ class AuthorizationTestCase(TestCase):
     # (3) Can read but not modify a literal
     # (4) Can read but not modify a peimpl
     # (5) Can read but not modify a fnimpl
+    pass
 
 # TODO: Implement the workspace test case
 class WorkspaceTestCase(TestCase):
