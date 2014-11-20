@@ -181,7 +181,7 @@ class AuthorizationTestCase(TestCase):
     # Test user with modify_contents_workspace modifying an existing literal
     # Test user with modify_contents_workspace modifying an existing peimpl
     # Test user with modify_contents_workspace modifying an existing fnimpl
-    pass
+    pass 
 
   def test_workspace_add(self):
     # Test user with modify_contents_workspace adding a new PE
