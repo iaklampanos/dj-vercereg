@@ -32,9 +32,12 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
       # FIXME: Constructs the URL manually, via the request, which is not advisable (insecure and not very robust)
       group_id = v['id']
       g = Group.objects.get(id=group_id)
-      rug_instance = RegistryUserGroup.objects.get(group=g)
-      rug = get_base_rest_uri(request) + 'registryusergroups/' + str(rug_instance.id) + '/'
-      toret.append(rug)
+      try:
+        rug_instance = RegistryUserGroup.objects.get(group=g)
+        rug = get_base_rest_uri(request) + 'registryusergroups/' + str(rug_instance.id) + '/'
+        toret.append(rug)
+      except RegistryUserGroup.DoesNotExist:
+        pass
     return toret
 
   def restore_object(self, attrs, instance=None):
@@ -55,7 +58,7 @@ class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
     fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns',)
     write_only_fields = ('password',)
     read_only_fields = ('username',)
-  
+
   def restore_object(self, attrs, instance=None):
     user = super(UserUpdateSerializer, self).restore_object(attrs, instance)
     user.set_password(attrs['password'])
@@ -113,19 +116,19 @@ class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
 
 ##############################################################################
 class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
-  
+
   pes = serializers.CharField(source='get_pesigs')
   functions = serializers.CharField(source='get_fnsigs')
   literals = serializers.CharField(source='get_literalsigs')
   peimplementations = serializers.CharField(source='get_peimplementations')
   fnimplementations = serializers.CharField(source='get_fnimplementations')
-  
+
   class Meta:
     model = Workspace
-    # TODO (nice-to-have) revisit the depth issue, user serialization is not good enough - disabled for now. 
+    # TODO (nice-to-have) revisit the depth issue, user serialization is not good enough - disabled for now.
     depth = 0
     read_only_fields = ('owner', 'creation_date')
-  
+
   def transform_pes(self, obj, value):
     request = self.context.get('request')
     pes = obj.pesig_set.get_queryset()
@@ -140,12 +143,12 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
     request = self.context.get('request')
     lits = obj.literalsig_set.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'literals/' + str(p.id), lits)
-  
+
   def transform_peimplementations(self, obj, value):
     request = self.context.get('request')
     peimpls = obj.peimplementation_set.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'peimpls/' + str(p.id), peimpls)
-  
+
   def transform_fnimplementations(self, obj, value):
     request = self.context.get('request')
     fnimpls = obj.fnimplementation_set.get_queryset()

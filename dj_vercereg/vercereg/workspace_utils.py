@@ -32,14 +32,14 @@ from django.utils import timezone
 
 class WorkspaceCloner:
   '''Implements a deep cloner for vercereg workspaces.'''
-  
+
   def __init__(self, original_workspace, name, user):
     self.original_workspace = original_workspace
     self.target_workspace = None
     self.name = name
     self.user = user
     self.dic = {} # dictionary fromWorkspaceItem:toWorkspaceItem, when cloned
-  
+
   def clone_pe(self, pe):
     if pe in self.dic: return self.dic[pe]
     ret = PESig()
@@ -64,7 +64,7 @@ class WorkspaceCloner:
       newconn.save()
     for p in pe.peimplementation_set.all():
       newp = self.clone_peimpl(p, ret) # foreign key doesn't need to be updated here
-    
+
     # ret.save() # Update FIXME: Probably not needed...
     self.dic[pe] = ret
     return ret
@@ -80,11 +80,11 @@ class WorkspaceCloner:
     ret.code = peimpl.code
     ret.user = self.user
     if newparent: ret.parent_sig = newparent
-    
+
     ret.save()
     self.dic[peimpl] = ret
     return ret
-    
+
   def clone_literal(self, lit):
     if lit in self.dic: return self.dic[lit]
     ret = LiteralSig()
@@ -95,11 +95,11 @@ class WorkspaceCloner:
     ret.description = lit.description
     ret.value = lit.value
     ret.user = self.user
-    
+
     ret.save()
     self.dic[lit] = ret
     return ret
-  
+
   def clone_function(self, fun):
     if fun in self.dic: return self.dic[fun]
     ret = FunctionSig()
@@ -110,7 +110,7 @@ class WorkspaceCloner:
     ret.description = fun.description
     ret.return_type = fun.return_type
     ret.user = self.user
-    
+
     ret.save()
     for param in fun.parameters.all():
       newparam = FunctionParameter()
@@ -120,11 +120,11 @@ class WorkspaceCloner:
       newparam.save()
     for fnimpl in fun.fnimplementation_set.all():
       newf = self.clone_fnimpl(fnimpl, ret)
-    
+
     #ret.save()
     self.dic[fun] = ret
     return ret
-  
+
   def clone_fnimpl(self, fnimpl, newparent=None):
     if fnimpl in self.dic: return self.dic[fnimpl]
     ret = FnImplementation()
@@ -136,19 +136,19 @@ class WorkspaceCloner:
     ret.code = fnimpl.code
     if newparent: ret.parent_sig = newparent
     ret.user = self.user
-    
+
     ret.save()
     self.dic[fnimpl] = ret
     return ret
-  
+
 
   def clone(self):
     '''Deep clone the original workspace into the target and return it.'''
     # print 'Cloning ' + str(self.original_workspace)
-    
+
     self.target_workspace = Workspace(name=self.name, owner=self.user, creation_date=timezone.now(), description=self.original_workspace.description)
     self.target_workspace.save()
-    
+
     for pe in self.original_workspace.get_pesigs():
       self.dic[pe] = self.clone_pe(pe)
     for lit in self.original_workspace.get_literalsigs():
@@ -159,8 +159,8 @@ class WorkspaceCloner:
       self.dic[peimpl] = self.clone_peimpl(peimpl)
     for fnimpl in self.original_workspace.get_fnimplementations():
       self.dic[fnimpl] = self.clone_fnimpl(fnimpl)
-    
-    # TODO: Give self.user all permissions on the new workspace 
-    
-    
+
+    # TODO: Give self.user all permissions on the new workspace
+
+
     return self.target_workspace

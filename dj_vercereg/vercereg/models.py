@@ -35,17 +35,17 @@ class RegistryUserGroup(models.Model):
   group = models.OneToOneField(Group)
   owner = models.ForeignKey(User, related_name='owns')
   description = models.TextField(null=True, blank=True)
-  
+
   def get_group_name(self):
     return self.group.name
-  
+
   def get_owner_username(self):
     return self.owner.username
-  
+
 
 class Workspace(models.Model):
   ''' The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name. '''
-  
+
   name = models.CharField(max_length=100, null=False, blank=False)
   owner = models.ForeignKey(User)
   description = models.TextField(null=True, blank=True)
@@ -57,16 +57,16 @@ class Workspace(models.Model):
 
   def get_pesigs(self):
     return self.pesig_set.get_queryset()
-  
+
   def get_fnsigs(self):
     return self.functionsig_set.get_queryset()
-  
+
   def get_literalsigs(self):
     return self.literalsig_set.get_queryset()
-    
+
   def get_peimplementations(self):
     return self.peimplementation_set.get_queryset()
-  
+
   def get_fnimplementations(self):
     return self.fnimplementation_set.get_queryset()
 
@@ -95,7 +95,7 @@ class WorkspaceItem(models.Model):
   class Meta:
     abstract = True
     unique_together = ('workspace', 'pckg', 'name')
-    
+
   def __unicode__(self):
     return u'[%s] %s.%s' % (self.workspace, self.pckg, self.name)
 
@@ -113,7 +113,7 @@ class PESig(WorkspaceItem):
   )
 
   kind = models.CharField(max_length=10, choices=PE_TYPES)
-  
+
   class Meta:
     verbose_name = "PE"
     verbose_name_plural = "PEs"
@@ -156,11 +156,11 @@ class LiteralSig(WorkspaceItem):
 
 class FunctionSig(WorkspaceItem):
   '''
-  A model representing a function in a workspace. 
+  A model representing a function in a workspace.
   '''
   description = models.TextField(null=True, blank=True)
   return_type = models.CharField(max_length=30)
-  
+
   class Meta:
     verbose_name = "function"
     unique_together = ('workspace', 'pckg', 'name')
@@ -173,15 +173,15 @@ class FunctionParameter(models.Model):
   param_name = models.CharField(max_length=30)
   param_type = models.CharField(max_length=30, null=True, blank=True, default=None)
   parent_function = models.ForeignKey(FunctionSig, related_name='parameters')
-  
+
 
 class WorkflowSig(WorkspaceItem):
   '''
   A workflow signature model, to hold information about whole workflows.
-  TODO: (nice-to-have) Think about implementation. 
+  TODO: (nice-to-have) Think about implementation.
   '''
   description = models.TextField(null=True, blank=True)
-  
+
   class Meta:
     verbose_name = "workflow"
     unique_together = ('workspace', 'pckg', 'name')
@@ -194,10 +194,10 @@ class PEImplementation(WorkspaceItem):
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(PESig)
-  
+
   def short_code(self):
     return self.code[0:35] + ' [...]'
-  
+
   class Meta:
     verbose_name = "PE implementation"
     unique_together = ('workspace', 'pckg', 'name')
@@ -210,14 +210,14 @@ class FnImplementation(WorkspaceItem):
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(FunctionSig)
-  
+
   def short_code(self):
     return self.code[0:35] + ' [...]'
-    
+
   class Meta:
     verbose_name = "function implementation"
     unique_together = ('workspace', 'pckg', 'name')
-    
+
 
 # Reversion registrations for version control
 reversion.register(Workspace)

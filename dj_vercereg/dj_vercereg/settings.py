@@ -69,7 +69,7 @@ INSTALLED_APPS = (
     'guardian',
     'rest_framework_swagger',
 )
- 
+
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -79,7 +79,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
- 
+
 ROOT_URLCONF = 'dj_vercereg.urls'
 
 WSGI_APPLICATION = 'dj_vercereg.wsgi.application'
@@ -176,7 +176,7 @@ SWAGGER_SETTINGS = {
     ],
     # "api_key": '4737f71829a7eff1e077268b89696ab536c26a11', # An API key
     "is_authenticated": True,  # Set to True to enforce user authentication,
-    "is_superuser": True,  # Set to True to enforce admin only access
+    "is_superuser": False,  # Set to True to enforce admin only access
     "permission_denied_handler": None, # If user has no permisssion, raise 403 error
     "info": {
         # Configure some Swagger UI variables, for details see:

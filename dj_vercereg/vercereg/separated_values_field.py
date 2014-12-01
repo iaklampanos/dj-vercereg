@@ -24,15 +24,15 @@ class SeparatedValuesField(models.TextField):
 
   def to_python(self, value):
     if not value: return []
-    elif isinstance(value, list) or isinstance(value, tuple) or isinstance(value, set): 
+    elif isinstance(value, list) or isinstance(value, tuple) or isinstance(value, set):
       return self.token.join(list(value))
     elif isinstance(value, unicode) or isinstance(value, str):
       return str(value)
     else:
       raise ValidationError('Invalid input for a SeparatedValuesField instance: ' + str(type(value)))
-  
-  
-  # Since using a database requires conversion in both ways, if you override to_python() you also have to override get_prep_value() to convert Python objects back to query values.  
+
+
+  # Since using a database requires conversion in both ways, if you override to_python() you also have to override get_prep_value() to convert Python objects back to query values.
   def get_prep_value(self, value):
     if not value: return None
     elif isinstance(value, unicode) or isinstance(value, str):
@@ -52,4 +52,3 @@ class SeparatedValuesField(models.TextField):
   def value_to_string(self, obj):
     value = self._get_val_from_obj(obj)
     return self.get_prep_value(value)
-
