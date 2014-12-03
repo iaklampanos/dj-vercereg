@@ -171,7 +171,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             paramType: query 
     '''
     allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations', 'packages']
-    wspc = get_object_or_404(self.queryset, pk=pk)
+    wspc = get_object_or_404(self.queryset, pk=pk) 
 
     pes = functions = literals = fnimpls = peimpls = packages = None
     
