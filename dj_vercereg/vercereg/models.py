@@ -91,10 +91,10 @@ class WorkspaceItem(models.Model):
   user = models.ForeignKey(User)
   # group = models.ForeignKey(Group)
   creation_date = models.DateTimeField()
-
+  
   class Meta:
     abstract = True
-    unique_together = ('workspace', 'pckg', 'name')
+    unique_together = ('workspace', 'pckg', 'name', )
 
   def __unicode__(self):
     return u'[%s] %s.%s' % (self.workspace, self.pckg, self.name)
@@ -113,6 +113,10 @@ class PESig(WorkspaceItem):
   )
 
   kind = models.CharField(max_length=10, choices=PE_TYPES)
+
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   class Meta:
     verbose_name = "PE"
@@ -148,6 +152,9 @@ class LiteralSig(WorkspaceItem):
   '''
   description = models.TextField(null=True, blank=True)
   value = models.CharField(max_length=50, null=True, blank=False)
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   class Meta:
     verbose_name = "literal"
@@ -160,6 +167,9 @@ class FunctionSig(WorkspaceItem):
   '''
   description = models.TextField(null=True, blank=True)
   return_type = models.CharField(max_length=30)
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   class Meta:
     verbose_name = "function"
@@ -181,6 +191,9 @@ class WorkflowSig(WorkspaceItem):
   TODO: (nice-to-have) Think about implementation.
   '''
   description = models.TextField(null=True, blank=True)
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   class Meta:
     verbose_name = "workflow"
@@ -194,6 +207,9 @@ class PEImplementation(WorkspaceItem):
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(PESig)
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   def short_code(self):
     return self.code[0:35] + ' [...]'
@@ -210,6 +226,9 @@ class FnImplementation(WorkspaceItem):
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
   parent_sig = models.ForeignKey(FunctionSig)
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
 
   def short_code(self):
     return self.code[0:35] + ' [...]'

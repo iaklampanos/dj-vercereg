@@ -148,7 +148,6 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
     return Response(serializer.data)
 
 
-
 class WorkspaceViewSet(viewsets.ModelViewSet):
   ''' Workspace resource. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceBasedPermissions, )
@@ -162,71 +161,143 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         ---
         parameters:
           - name: ls
-            description: Lists the contents of the given workspace, as well as the packages contained.
+            description: Lists the requested contents of the given workspace, as well as its packages, in short
             paramType: query
           - name: kind
-            description: Lists details of the requested type of workspace item. Valid values are pes, functions, literals, peimpls and fnimpls.
+            description: Lists details of the requested type of workspace item. Valid values are pes, functions, literals, peimpls, fnimpls and packages.
             paramType: query
+          - name: startswith
+            description: Optionally filters the displayed items depending on the string their package name starts with. `startswith` currently does not work if not ls is requested and not kind is provided.
+            paramType: query 
     '''
-    allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations']
+    allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations', 'packages']
     wspc = get_object_or_404(self.queryset, pk=pk)
 
-    if 'ls' in self.request.QUERY_PARAMS:
-      pes = list(PESig.objects.filter(workspace = wspc))
-      functions = list(FunctionSig.objects.filter(workspace=wspc))
-      literals = list(LiteralSig.objects.filter(workspace=wspc))
-      fnimpls = list(FnImplementation.objects.filter(workspace=wspc))
-      peimpls = list(PEImplementation.objects.filter(workspace=wspc))
+    pes = functions = literals = fnimpls = peimpls = packages = None
+    
+    kind_to_show = self.request.QUERY_PARAMS.get('kind')
+    ls = 'ls' in self.request.QUERY_PARAMS
+  
+    starts_with = self.request.QUERY_PARAMS.get('startswith')
+    
+    print 'kind = ' + str(kind_to_show)
+    print 'startswith = ' + str(starts_with)
+    print 'ls = ' + str(ls)
+    if not starts_with: starts_with=''
+    
+    if kind_to_show and kind_to_show in allowed_kinds_to_show:
+      if kind_to_show == 'pes':
+        pes = PESig.objects.filter(workspace = wspc, pckg__startswith=starts_with)
+      elif kind_to_show == 'functions':
+        functions = FunctionSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      elif kind_to_show == 'literals':
+        literals = LiteralSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      elif kind_to_show == 'peimpls':
+        peimpls = PEImplementation.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      elif kind_to_show == 'fnimpls':
+        fnimpls = FnImplementation.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      elif kind_to_show == 'packages':
+        # collect everything in order to derive the package list
+        pes = list(PESig.objects.filter(workspace = wspc))
+        functions = list(FunctionSig.objects.filter(workspace=wspc))
+        literals = list(LiteralSig.objects.filter(workspace=wspc))
+        fnimpls = list(FnImplementation.objects.filter(workspace=wspc))
+        peimpls = list(PEImplementation.objects.filter(workspace=wspc))
+        packages = []
+        # collect all the packages
+        pckg_set = set([])
+        for i in pes+functions+literals+fnimpls+peimpls:
+          if i.pckg.startswith(starts_with):
+            pckg_set.add(i.pckg)
+        packages = list(pckg_set)
+        packages.sort()
+        pes = functions = literals = fnimpls = peimpls = None
+    else:
+      # collect all the objects
+      pes = PESig.objects.filter(workspace = wspc, pckg__startswith=starts_with)
+      print '** ' + str(len(list(pes)))
+      functions = FunctionSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      literals = LiteralSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      fnimpls = FnImplementation.objects.filter(workspace=wspc, pckg__startswith=starts_with)
+      peimpls = PEImplementation.objects.filter(workspace=wspc, pckg__startswith=starts_with)
       packages = []
-
       # collect all the packages
       pckg_set = set([])
-      for i in pes+functions+literals+fnimpls+peimpls:
-        pckg_set.add(i.pckg)
+      for i in list(pes)+list(functions)+list(literals)+list(fnimpls)+list(peimpls):
+        if i.pckg.startswith(starts_with):
+          pckg_set.add(i.pckg)
       packages = list(pckg_set)
       packages.sort()
-
-      # FIXME: get_base_rest_uri depends on request - insecure - can be spoofed.
+    
+    self.check_object_permissions(request, wspc)
+    if not ls:
+      if kind_to_show:
+        if kind_to_show=='pes':
+          serializer = PESigSerializer(pes, many=True, context={'request': request})
+        elif kind_to_show=='functions':
+          serializer = FunctionSigSerializer(functions, many=True, context={'request': request})
+        elif kind_to_show=='literals':
+          serializer = LiteralSigSerializer(literals, many=True, context={'request': request})
+        elif kind_to_show=='peimpls':
+          serializer = PEImplementationSerializer(peimpls, many=True, context={'request': request})
+        elif kind_to_show=='fnimpls':
+          serializer = FnImplementationSerializer(items, many=True, context={'request': request})
+        elif kind_to_show=='packages':
+          return Response({'packages':packages})
+        if kind_to_show != 'packages':
+          return Response(serializer.data)
+      else:
+        # show everything
+        self.check_object_permissions(request, wspc)
+        serializer = WorkspaceDeepSerializer(wspc, context={'request': request})
+        if kind_to_show:
+          if kind_to_show == 'pes':
+            serializer.data['pes'] = pes
+          elif kind_to_show == 'functions':
+            serializer.data['functions'] = functions
+          elif kind_to_show == 'literals':
+            serializer.data['literals'] = literals
+          elif kind_to_show == 'peimpls':
+            serializer.data['peimplementations'] = peimpls
+          elif kind_to_show == 'fnimpls':
+            serializer.data['fnimplementations'] = fnimpls
+          elif kind_to_show == 'packages':
+            serializer.data['packages']=packages
+        else:
+          pass
+          # FIXME: The following does not work; fix iff important
+          # serializer.data['pes'] = list(pes)
+          # serializer.data['functions'] = functions
+          # serializer.data['literals'] = literals
+          # serializer.data['peimplementations'] = peimpls
+          # serializer.data['fnimplementations'] = fnimpls
+          pass
+        return Response(serializer.data)
+    else: # ls
       dataret = {}
-      dataret['pes'] = [{get_base_rest_uri(request)+'pes/' + str(x.id):x.pckg +'.' + x.name} for x in pes]
-      dataret['functions'] = [{get_base_rest_uri(request)+'functions/' + str(x.id):x.pckg +'.' + x.name} for x in functions]
-      dataret['literals'] = [{get_base_rest_uri(request)+'literals/' + str(x.id):x.pckg +'.' + x.name} for x in literals]
-      dataret['peimpls'] = [{get_base_rest_uri(request)+'peimpls/' + str(x.id):x.pckg +'.' + x.name} for x in peimpls]
-      dataret['fnimpls'] = [{get_base_rest_uri(request)+'fnimpls/' + str(x.id):x.pckg +'.' + x.name} for x in fnimpls]
-      dataret['packages'] = packages
+      if kind_to_show:
+        if kind_to_show=='pes':
+          dataret['pes'] = [{get_base_rest_uri(request)+'pes/' + str(x.id):x.pckg +'.' + x.name} for x in pes]
+        elif kind_to_show=='functions':
+          dataret['functions'] = [{get_base_rest_uri(request)+'functions/' + str(x.id):x.pckg +'.' + x.name} for x in functions]
+        elif kind_to_show=='literals':
+          dataret['literals'] = [{get_base_rest_uri(request)+'literals/' + str(x.id):x.pckg +'.' + x.name} for x in literals]
+        elif kind_to_show=='peimpls':
+          dataret['peimpls'] = [{get_base_rest_uri(request)+'peimpls/' + str(x.id):x.pckg +'.' + x.name} for x in peimpls]
+        elif kind_to_show=='fnimpls':
+          dataret['fnimpls'] = [{get_base_rest_uri(request)+'fnimpls/' + str(x.id):x.pckg +'.' + x.name} for x in fnimpls]
+        elif kind_to_show=='packages':
+          dataret['packages'] = packages
+      else:
+        dataret['pes'] = [{get_base_rest_uri(request)+'pes/' + str(x.id):x.pckg +'.' + x.name} for x in pes]
+        dataret['functions'] = [{get_base_rest_uri(request)+'functions/' + str(x.id):x.pckg +'.' + x.name} for x in functions]
+        dataret['literals'] = [{get_base_rest_uri(request)+'literals/' + str(x.id):x.pckg +'.' + x.name} for x in literals]
+        dataret['peimpls'] = [{get_base_rest_uri(request)+'peimpls/' + str(x.id):x.pckg +'.' + x.name} for x in peimpls]
+        dataret['fnimpls'] = [{get_base_rest_uri(request)+'fnimpls/' + str(x.id):x.pckg +'.' + x.name} for x in fnimpls]
+        dataret['packages'] = packages
 
       return Response(dataret)
 
-    kind_to_show = self.request.QUERY_PARAMS.get('kind')
-    if not kind_to_show or kind_to_show not in allowed_kinds_to_show:
-      self.check_object_permissions(request, wspc)
-      serializer = WorkspaceDeepSerializer(wspc, context={'request': request})
-      return Response(serializer.data)
-    else:
-      serializer = None
-      items = []
-      # FIXME: The repeated self.check_object_permissions(request, wspc) is probably not needed
-      if kind_to_show == 'pes':
-        items = PESig.objects.filter(workspace=wspc)
-        self.check_object_permissions(request, wspc)
-        serializer = PESigSerializer(items, many=True, context={'request': request})
-      elif kind_to_show == 'functions':
-        items = FunctionSig.objects.filter(workspace=wspc)
-        self.check_object_permissions(request, wspc)
-        serializer = FunctionSigSerializer(items, many=True, context={'request': request})
-      elif kind_to_show == 'literals':
-        items = LiteralSig.objects.filter(workspace=wspc)
-        self.check_object_permissions(request, wspc)
-        serializer = LiteralSigSerializer(items, many=True, context={'request': request})
-      elif kind_to_show == 'fn_implementations':
-        items = FnImplementation.objects.filter(workspace=wspc)
-        self.check_object_permissions(request, wspc)
-        serializer = FnImplementationSerializer(items, many=True, context={'request': request})
-      elif kind_to_show == 'pe_implementations':
-        items = PEImplementation.objects.filter(workspace=wspc)
-        self.check_object_permissions(request, wspc)
-        serializer = PEImplementationSerializer(items, many=True, context={'request': request})
-      return Response(serializer.data)
 
   def create(self, request):
     '''
@@ -412,7 +483,7 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
 class PESigViewSet(viewsets.ModelViewSet):
   ''' PE resource. Allows addition and manipulation of dispel4py processing elements (PEs). '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
-
+ 
   queryset = PESig.objects.all()
   serializer_class = PESigSerializer
 

@@ -159,7 +159,7 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
 class PESigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PESig
-    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'connections', 'creation_date', )
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'connections', 'creation_date',)
     read_only_fields = ('user', 'creation_date',)
 
 ##############################################################################
