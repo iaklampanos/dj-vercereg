@@ -146,12 +146,12 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
 
   def transform_peimplementations(self, obj, value):
     request = self.context.get('request')
-    peimpls = obj.peimpls.get_queryset()
+    peimpls = obj.peimplementation_set.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'peimpls/' + str(p.id), peimpls)
 
   def transform_fnimplementations(self, obj, value):
     request = self.context.get('request')
-    fnimpls = obj.fnimpls.get_queryset()
+    fnimpls = obj.fnimplementation_set.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'fnimpls/' + str(p.id), fnimpls)
 
 
