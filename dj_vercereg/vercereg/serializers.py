@@ -146,12 +146,12 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
 
   def transform_peimplementations(self, obj, value):
     request = self.context.get('request')
-    peimpls = obj.peimplementation_set.get_queryset()
+    peimpls = obj.peimpls.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'peimpls/' + str(p.id), peimpls)
 
   def transform_fnimplementations(self, obj, value):
     request = self.context.get('request')
-    fnimpls = obj.fnimplementation_set.get_queryset()
+    fnimpls = obj.fnimpls.get_queryset()
     return map(lambda p: get_base_rest_uri(request) + 'fnimpls/' + str(p.id), fnimpls)
 
 
@@ -159,8 +159,8 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
 class PESigSerializer(serializers.HyperlinkedModelSerializer):
   class Meta:
     model = PESig
-    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'connections', 'creation_date',)
-    read_only_fields = ('user', 'creation_date',)
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'connections', 'creation_date', 'peimpls')
+    read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################
 class ConnectionSerializer(serializers.HyperlinkedModelSerializer):
@@ -173,9 +173,10 @@ class FunctionParameterSerializer(serializers.HyperlinkedModelSerializer):
 
 ##############################################################################
 class FunctionSigSerializer(serializers.HyperlinkedModelSerializer):
+  #implementations = serializers.WritableField(source='fnimplementation_set', required=False)
   class Meta:
     model = FunctionSig
-    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'creation_date', 'return_type', 'parameters')
+    fields = ('url', 'id', 'workspace', 'pckg', 'name', 'user', 'description', 'creation_date', 'return_type', 'parameters', 'fnimpls')
     read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################

@@ -62,7 +62,7 @@ class WorkspaceCloner:
       newconn.modifiers = c.modifiers
       newconn.pesig = ret
       newconn.save()
-    for p in pe.peimplementation_set.all():
+    for p in pe.peimpls.all():
       newp = self.clone_peimpl(p, ret) # foreign key doesn't need to be updated here
 
     # ret.save() # Update FIXME: Probably not needed...
@@ -118,7 +118,7 @@ class WorkspaceCloner:
       newparam.param_type = param.param_type
       newparam.parent_function = ret
       newparam.save()
-    for fnimpl in fun.fnimplementation_set.all():
+    for fnimpl in fun.fnimpls.all():
       newf = self.clone_fnimpl(fnimpl, ret)
 
     #ret.save()

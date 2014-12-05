@@ -91,6 +91,7 @@ class VerceRegManager:
     return self.logged_in
 
   def clone(self, orig_workspace_id, name):
+    '''Clone the given workspace into a new one with the name `name`. '''
     if not self.logged_in:
       raise NotLoggedInError()
       return
@@ -98,6 +99,16 @@ class VerceRegManager:
     url = self.get_base_url() + self.URL_WORKSPACES + '?clone_of=' + str(orig_workspace_id)
     r = requests.post(url, data={'name':name}, headers=self.get_auth_header())
     print r.text
+  
+  def get_implementations(self, workspace_id, pckg, name):
+    '''Return a dictionary corresponding to the implementations of the given workspace-item / identified by pckg-name.'''
+    if not self.logged_in:
+      raise NotLoggedInError()
+      return
+    
+    #TODO implement!
+    pass
+    
 
 ## VERCE Registry library errors: ###########################    
 class VerceRegClientLibError(Exception):
