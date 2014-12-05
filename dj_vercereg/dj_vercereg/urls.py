@@ -29,8 +29,8 @@ router.register(r'functions', views.FunctionSigViewSet, base_name='functionsig')
 router.register(r'literals', views.LiteralSigViewSet, base_name='literalsig')
 router.register(r'connections', views.ConnectionViewSet, base_name='connection')
 router.register(r'fnparams', views.FunctionParameterViewSet, base_name='functionparameter')
-router.register(r'peimpls', views.PEImplementationViewSet, base_name='pe_implementation')
-router.register(r'fnimpls', views.FnImplementationViewSet, base_name='fn_implementation')
+router.register(r'peimpls', views.PEImplementationViewSet)
+router.register(r'fnimpls', views.FnImplementationViewSet)
 
 urlpatterns = patterns('',
     # Examples:

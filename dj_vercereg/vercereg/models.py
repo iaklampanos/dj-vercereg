@@ -100,52 +100,6 @@ class WorkspaceItem(models.Model):
     return u'[%s] %s.%s' % (self.workspace, self.pckg, self.name)
 
 
-class PESig(WorkspaceItem):
-  '''
-  A model representing the signature of a PE. PEs are workspace items.
-  '''
-  description = models.TextField(null=True, blank=True)
-  # Implied connection_set fields due to ForeignKey in Connection relation
-  PE_TYPES = (
-    ('ABSTRACT', 'Abstract'),
-    ('PRIMITIVE', 'Primitive'),
-    ('COMPOSITE', 'Composite')
-  )
-
-  kind = models.CharField(max_length=10, choices=PE_TYPES)
-
-  def _get_full_name(self):
-    return '%s.%s' % (self.pckg, self.name)
-  full_name = property(_get_full_name)
-
-  class Meta:
-    verbose_name = "PE"
-    verbose_name_plural = "PEs"
-    unique_together = ('workspace', 'pckg', 'name')
-
-
-class Connection(models.Model):
-  '''
-  A model representing a PE connections. Connections are descriptions of pipes between PEs and belong to their respective PEs. As they are not designed to be dealt with independently of their PEs, connections are not workspace items.
-  '''
-  CONNECTION_TYPES = (
-    ('IN', 'In'),
-    ('OUT', 'Out')
-  )
-
-  kind = models.CharField(max_length=3, choices=CONNECTION_TYPES)
-  name = models.CharField(max_length=30)
-  s_type = models.CharField(max_length=30, null=True, blank=True)
-  d_type = models.CharField(max_length=30, null=True, blank=True)
-  comment = models.CharField(max_length=200, null=True, blank=True)
-  is_array = models.BooleanField(default=False)
-  pesig = models.ForeignKey(PESig, related_name='connections')
-  modifiers = SeparatedValuesField(null=True, blank=True)
-
-  def __unicode__(self):
-    return u'[%s] %s (%s|%s)' % (self.pesig, self.name, self.kind, self.modifiers)
-
-
 class LiteralSig(WorkspaceItem):
   '''
   A model representing a literal in a workspace. Literals only carry a package.name and a value. They are workspace items.
@@ -200,13 +154,59 @@ class WorkflowSig(WorkspaceItem):
     unique_together = ('workspace', 'pckg', 'name')
 
 
+class PESig(WorkspaceItem):
+  '''
+  A model representing the signature of a PE. PEs are workspace items.
+  '''
+  description = models.TextField(null=True, blank=True)
+  # Implied connection_set fields due to ForeignKey in Connection relation
+  PE_TYPES = (
+    ('ABSTRACT', 'Abstract'),
+    ('PRIMITIVE', 'Primitive'),
+    ('COMPOSITE', 'Composite')
+  )
+
+  kind = models.CharField(max_length=10, choices=PE_TYPES)
+
+  def _get_full_name(self):
+    return '%s.%s' % (self.pckg, self.name)
+  full_name = property(_get_full_name)
+
+  class Meta:
+    verbose_name = "PE"
+    verbose_name_plural = "PEs"
+    unique_together = ('workspace', 'pckg', 'name')
+
+
+class Connection(models.Model):
+  '''
+  A model representing a PE connections. Connections are descriptions of pipes between PEs and belong to their respective PEs. As they are not designed to be dealt with independently of their PEs, connections are not workspace items.
+  '''
+  CONNECTION_TYPES = (
+    ('IN', 'In'),
+    ('OUT', 'Out')
+  )
+
+  kind = models.CharField(max_length=3, choices=CONNECTION_TYPES)
+  name = models.CharField(max_length=30)
+  s_type = models.CharField(max_length=30, null=True, blank=True)
+  d_type = models.CharField(max_length=30, null=True, blank=True)
+  comment = models.CharField(max_length=200, null=True, blank=True)
+  is_array = models.BooleanField(default=False)
+  pesig = models.ForeignKey(PESig, related_name='connections')
+  modifiers = SeparatedValuesField(null=True, blank=True)
+
+  def __unicode__(self):
+    return u'[%s] %s (%s|%s)' % (self.pesig, self.name, self.kind, self.modifiers)
+
+
 class PEImplementation(WorkspaceItem):
   '''
   This is a model to hold an implementation of a PE. This is a separate workspace item and it will be associated to exactly one PESig (many-to-one).
   '''
   description = models.TextField(null=True, blank=True)
-  code = models.TextField(null=False, blank=True)
-  parent_sig = models.ForeignKey(PESig)
+  code = models.TextField(null=False, blank=False)
+  parent_sig = models.ForeignKey(PESig, related_name='peimpls')
   def _get_full_name(self):
     return '%s.%s' % (self.pckg, self.name)
   full_name = property(_get_full_name)
@@ -225,7 +225,7 @@ class FnImplementation(WorkspaceItem):
   '''
   description = models.TextField(null=True, blank=True)
   code = models.TextField(null=False, blank=True)
-  parent_sig = models.ForeignKey(FunctionSig)
+  parent_sig = models.ForeignKey(FunctionSig, related_name='fnimpls')
   def _get_full_name(self):
     return '%s.%s' % (self.pckg, self.name)
   full_name = property(_get_full_name)

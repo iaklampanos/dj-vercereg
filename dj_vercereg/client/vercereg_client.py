@@ -40,8 +40,8 @@ def main():
   #                    help='a VERCE Registry command')
                      
   manager = VerceRegManager()
-  manager.login('admin', 'admin')
-  manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
+  print manager.login('admin', 'admin')
+  # manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
 
 if __name__ == '__main__':
   main()

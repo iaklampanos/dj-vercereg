@@ -171,7 +171,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             paramType: query 
     '''
     allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations', 'packages']
-    wspc = get_object_or_404(self.queryset, pk=pk) 
+    wspc = get_object_or_404(self.queryset, pk=pk)
 
     pes = functions = literals = fnimpls = peimpls = packages = None
     
@@ -180,9 +180,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   
     starts_with = self.request.QUERY_PARAMS.get('startswith')
     
-    print 'kind = ' + str(kind_to_show)
-    print 'startswith = ' + str(starts_with)
-    print 'ls = ' + str(ls)
+    # print 'kind = ' + str(kind_to_show)
+    # print 'startswith = ' + str(starts_with)
+    # print 'ls = ' + str(ls)
     if not starts_with: starts_with=''
     
     if kind_to_show and kind_to_show in allowed_kinds_to_show:
@@ -215,7 +215,6 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     else:
       # collect all the objects
       pes = PESig.objects.filter(workspace = wspc, pckg__startswith=starts_with)
-      print '** ' + str(len(list(pes)))
       functions = FunctionSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
       literals = LiteralSig.objects.filter(workspace=wspc, pckg__startswith=starts_with)
       fnimpls = FnImplementation.objects.filter(workspace=wspc, pckg__startswith=starts_with)
@@ -241,7 +240,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         elif kind_to_show=='peimpls':
           serializer = PEImplementationSerializer(peimpls, many=True, context={'request': request})
         elif kind_to_show=='fnimpls':
-          serializer = FnImplementationSerializer(items, many=True, context={'request': request})
+          serializer = FnImplementationSerializer(fnimpls, many=True, context={'request': request})
         elif kind_to_show=='packages':
           return Response({'packages':packages})
         if kind_to_show != 'packages':
@@ -480,6 +479,43 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
       obj.user = self.request.user
 
 
+class FunctionSigViewSet(viewsets.ModelViewSet):
+  ''' Function resource. Allows addition and manipulation of dispel4py functions. '''
+  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
+
+  queryset = FunctionSig.objects.all()
+  serializer_class = FunctionSigSerializer
+
+  def pre_save(self, obj):
+    obj.creation_date = timezone.now()
+    if not obj.pk:
+      obj.user = self.request.user
+
+
+class FunctionParameterViewSet(viewsets.ModelViewSet):
+  ''' Function parameter resource. Allows the addition and manipulation of function parameters. Function parameters are associated with functions and are not themselves workspace items. '''
+  permission_classes = (permissions.IsAuthenticated, FunctionParameterPermissions, )
+  queryset = FunctionParameter.objects.all()
+  serializer_class = FunctionParameterSerializer
+
+  def list(self, request):
+    message = {'error':'general listing of function parameters is not permitted'}
+    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class ConnectionViewSet(viewsets.ModelViewSet):
+  ''' PE Connection resource. Allows the addition and manipulation of PE connections. Connections are associated with PEs and are not themselves workspace items. '''
+  permission_classes = (permissions.IsAuthenticated, ConnectionPermissions)
+  queryset = Connection.objects.all()
+  serializer_class = ConnectionSerializer
+
+  # Disable list view
+  def list(self, request):
+    message = {'error':'general listing of connections is not permitted'}
+    #TODO: Use a more appropriate ERROR code
+    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
 class PESigViewSet(viewsets.ModelViewSet):
   ''' PE resource. Allows addition and manipulation of dispel4py processing elements (PEs). '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions, )
@@ -504,43 +540,6 @@ class PESigViewSet(viewsets.ModelViewSet):
       obj.user = self.request.user
 
 
-class FunctionSigViewSet(viewsets.ModelViewSet):
-  ''' Function resource. Allows addition and manipulation of dispel4py functions. '''
-  permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
-
-  queryset = FunctionSig.objects.all()
-  serializer_class = FunctionSigSerializer
-
-  def pre_save(self, obj):
-    obj.creation_date = timezone.now()
-    if not obj.pk:
-      obj.user = self.request.user
-
-
-class FunctionParameterViewSet(viewsets.ModelViewSet):
-  ''' Function parameter resource. Allows the addition and manipulation of function parameters. Function parameters are associated with functions and are not themselves workspace items. '''
-  permission_classes = (permissions.IsAuthenticated, FunctionParameterPermissions, )
-  queryset = FunctionParameter.objects.all()
-  serializer_class = FunctionParameterSerializer
-
-  def list(self, request):
-    message = {'error':'listing function parameters is not permitted'}
-    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-class ConnectionViewSet(viewsets.ModelViewSet):
-  ''' PE Connection resource. Allows the addition and manipulation of PE connections. Connections are associated with PEs and are not themselves workspace items. '''
-  permission_classes = (permissions.IsAuthenticated, ConnectionPermissions)
-  queryset = Connection.objects.all()
-  serializer_class = ConnectionSerializer
-
-  # Disable list view
-  def list(self, request):
-    message = {'error':'listing connections is not permitted'}
-    #TODO: Use a more appropriate ERROR code
-    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
 class PEImplementationViewSet(viewsets.ModelViewSet):
   ''' PE Implementation resource. Allows the creation and manipulation of PE implementations. PEs may have one or more implementations. '''
   permission_classes = (permissions.IsAuthenticated, WorkspaceItemPermissions,)
@@ -548,11 +547,14 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
   queryset = PEImplementation.objects.all()
   serializer_class = PEImplementationSerializer
 
+  def list(self, request):
+    message = {'error':'general listing of PE implementations parameters is not permitted'}
+    return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
       obj.user = self.request.user
-
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
