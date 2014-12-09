@@ -100,17 +100,70 @@ class VerceRegManager:
     r = requests.post(url, data={'name':name}, headers=self.get_auth_header())
     print r.text
   
-  def get_implementations(self, workspace_id, pckg, name):
-    '''Return a dictionary corresponding to the implementations of the given workspace-item / identified by pckg-name.'''
+  def get_pe_implementation_code(self, workspace_id, pckg, name, impl_index=0):
+    '''Return the implementation code of the given PE / identified by pckg-name.'''
     if not self.logged_in:
       raise NotLoggedInError()
       return
     
-    #TODO implement!
-    pass
+    url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
+    r = requests.get(url, headers=self.get_auth_header())
     
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+      return
+      
+    if 'peimpls' not in r.json():
+      raise NotPEError()
+      return 
+      
+    try:
+      impl_url = r.json()['peimpls'][impl_index]
+    except IndexError:
+      raise ImplementationNotFound()
+      return
+      
+    r = requests.get(impl_url, headers=self.get_auth_header())
+    return r.json().get('code')
 
-## VERCE Registry library errors: ###########################    
+  def get_fn_implementation_code(self, workspace_id, pckg, name, impl_index=0):
+    '''Return the implementation code of the given function / identified by pckg-name.'''
+    if not self.logged_in:
+      raise NotLoggedInError()
+      return
+    
+    url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
+    r = requests.get(url, headers=self.get_auth_header())
+    
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+      return
+      
+    if 'fnimpls' not in r.json():
+      raise NotFunctionError()
+      return 
+      
+    try:
+      impl_url = r.json()['fnimpls'][impl_index]
+    except IndexError:
+      raise ImplementationNotFound()
+      return
+      
+    r = requests.get(impl_url, headers=self.get_auth_header())
+    return r.json().get('code')
+
+
+## VERCE Registry library errors: ###########################
+
+class ImplementationNotFound(Exception):
+  pass
+  
+class NotPEError(Exception):
+  pass
+
+class NotFunctionError(Exception):
+  pass
+
 class VerceRegClientLibError(Exception):
   pass
 

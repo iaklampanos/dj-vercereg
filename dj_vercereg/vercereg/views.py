@@ -177,13 +177,48 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     
     kind_to_show = self.request.QUERY_PARAMS.get('kind')
     ls = 'ls' in self.request.QUERY_PARAMS
-  
+    
+    # Exact matching on the fqn of a workspace item (fqn -> pkg.name)
+    # fqns are unique within workspaces, so 0..1 results are expected when fqn is specified; ls is ignored (as we know the fqn of the item we're looking for already)
+    fqn_param = self.request.QUERY_PARAMS.get('fqn')
+    fqn_pkg = None
+    fqn_nam = None
+    if fqn_param:
+      fqn_pkg = fqn_param[:fqn_param.rfind('.')]
+      fqn_nam = fqn_param[fqn_param.rfind('.')+1:]
+      # try all models one by one; if a result is found then return it through the appropriate serializer
+      exact_matches = PESig.objects.filter(workspace = wspc, pckg=fqn_pkg, name=fqn_nam)
+      if len(exact_matches)>0:
+        serializer = PESigSerializer(exact_matches[0], context={'request':request})
+        return Response(serializer.data)
+      
+      exact_matches = FunctionSig.objects.filter(workspace = wspc, pckg=fqn_pkg, name=fqn_nam)
+      if len(exact_matches)>0:
+        serializer = FunctionSigSerializer(exact_matches[0], context={'request':request})
+        return Response(serializer.data)
+      
+      exact_matches = LiteralSig.objects.filter(workspace = wspc, pckg=fqn_pkg, name=fqn_nam)
+      if len(exact_matches)>0:
+        serializer = LiteralSigSerializer(exact_matches[0], context={'request':request})
+        return Response(serializer.data)
+        
+      exact_matches = PEImplementation.objects.filter(workspace = wspc, pckg=fqn_pkg, name=fqn_nam)
+      if len(exact_matches)>0:
+        serializer = PEImplementationSerializer(exact_matches[0], context={'request':request})
+        return Response(serializer.data)
+      
+      exact_matches = FnImplementation.objects.filter(workspace = wspc, pckg=fqn_pkg, name=fqn_nam)
+      if len(exact_matches)>0:
+        serializer = FnImplementationSerializer(exact_matches[0], context={'request':request})
+        return Response(serializer.data)
+      
+      msg = {'no content':'%s not found in workspace %s'%(fqn_param,wspc.name)}
+      return Response(msg, status=status.HTTP_404_NOT_FOUND)
+
     starts_with = self.request.QUERY_PARAMS.get('startswith')
     
-    # print 'kind = ' + str(kind_to_show)
-    # print 'startswith = ' + str(starts_with)
-    # print 'ls = ' + str(ls)
-    if not starts_with: starts_with=''
+    # fqn takes precedence over starts_with, in case both are specified
+    if not starts_with or fqn_param: starts_with=''
     
     if kind_to_show and kind_to_show in allowed_kinds_to_show:
       if kind_to_show == 'pes':
@@ -243,7 +278,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
           serializer = FnImplementationSerializer(fnimpls, many=True, context={'request': request})
         elif kind_to_show=='packages':
           return Response({'packages':packages})
-        if kind_to_show != 'packages':
+        if kind_to_show in allowed_kinds_to_show and kind_to_show != 'packages':
           return Response(serializer.data)
       else:
         # show everything
@@ -296,7 +331,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         dataret['packages'] = packages
 
       return Response(dataret)
-
+  
+    # if all else fails, assert we couldn't understand the request
+    msg = {'error':'bad request'}
+    return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
   def create(self, request):
     '''
