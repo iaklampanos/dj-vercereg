@@ -40,8 +40,10 @@ def main():
   #                    help='a VERCE Registry command')
                      
   manager = VerceRegManager()
-  print manager.login('admin', 'admin')
+  manager.login('admin', 'admin')
   # manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
+  print manager.get_pe_implementation_code(1, 'pckg.second', 'MyPE')
+  print manager.get_fn_implementation_code(1, 'fns', 'FNSIG')
 
 if __name__ == '__main__':
   main()
