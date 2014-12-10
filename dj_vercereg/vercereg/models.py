@@ -24,11 +24,18 @@ import reversion
 import datetime
 from vercereg.utils import get_base_rest_uri
 
-# @receiver(post_save, sender=User)
-# def create_auth_token(sender, instance=None, created=False, **kwargs):
-#   if created:
-#     Token.objects.create(user=instance)
+from django.core.exceptions import ValidationError
+import re
 
+def validate_package(value):
+  pckg_re = '^[a-zA-Z0-9_]+(\.?[a-zA-Z0-9_])*$'
+  if not re.match(pckg_re, value):
+    raise ValidationError(u'%s is not a valid package name - alphanumerics plus underscores, separated by full stops are only allowed. E.g. my_Packages.Experiment2')
+  
+def validate_name(value):
+  name_re = '^[a-zA-Z0-9_]+$'
+  if not re.match(name_re, value):
+    raise ValidationError(u'%s is not a valid name - alphanumerics plus underscores are only allowed. E.g. MyNewPE')
 
 class RegistryUserGroup(models.Model):
   '''Extends the group model so that it incorporates owner-users.'''
@@ -46,7 +53,7 @@ class RegistryUserGroup(models.Model):
 class Workspace(models.Model):
   ''' The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name. '''
 
-  name = models.CharField(max_length=100, null=False, blank=False)
+  name = models.CharField(max_length=100, null=False, blank=False, validators=[validate_name])
   owner = models.ForeignKey(User)
   description = models.TextField(null=True, blank=True)
   unique_together = (("owner", "name"),)
@@ -86,8 +93,8 @@ class WorkspaceItem(models.Model):
   An abstract model representing the basis for concrete workspace items, such as functions and PEs. A workspace item has at least a package, a name, a user and a user-group. Each workspace item belongs to exactly one workspace.
   '''
   workspace = models.ForeignKey(Workspace)
-  pckg = models.CharField(max_length=100)
-  name = models.CharField(max_length=100)
+  pckg = models.CharField(max_length=100, validators=[validate_package])
+  name = models.CharField(max_length=100, validators=[validate_name])
   user = models.ForeignKey(User)
   # group = models.ForeignKey(Group)
   creation_date = models.DateTimeField()

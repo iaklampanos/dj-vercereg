@@ -168,7 +168,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             paramType: query
           - name: startswith
             description: Optionally filters the displayed items depending on the string their package name starts with. `startswith` currently does not work if not ls is requested and not kind is provided.
-            paramType: query 
+            paramType: query
+          - name: fqn
+            description: Match the given 'fqn' within the workspace exactly. The fqn is in the form of package.name. The use of fqn takes precedence over other parameters.
     '''
     allowed_kinds_to_show = ['pes', 'functions', 'literals', 'fn_implementations', 'pe_implementations', 'packages']
     wspc = get_object_or_404(self.queryset, pk=pk)
@@ -212,7 +214,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         serializer = FnImplementationSerializer(exact_matches[0], context={'request':request})
         return Response(serializer.data)
       
-      msg = {'no content':'%s not found in workspace %s'%(fqn_param,wspc.name)}
+      msg = {'resource not found':'%s not found in workspace %s'%(fqn_param,wspc.name)}
       return Response(msg, status=status.HTTP_404_NOT_FOUND)
 
     starts_with = self.request.QUERY_PARAMS.get('startswith')

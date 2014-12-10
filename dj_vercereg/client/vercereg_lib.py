@@ -55,6 +55,10 @@ class VerceRegManager:
   DEF_PKG_PEIMPLS='peimpls'
   DEF_PKG_WORKSPACES='workspaces'
   
+  # JSON property names
+  PROP_PEIMPLS='peimpls'
+  PROP_FNIMPLS='fnimpls'
+  
   # def __init__(self):
   #   pass
   
@@ -113,12 +117,12 @@ class VerceRegManager:
       r.raise_for_status()
       return
       
-    if 'peimpls' not in r.json():
+    if self.PROP_PEIMPLS not in r.json():
       raise NotPEError()
       return 
       
     try:
-      impl_url = r.json()['peimpls'][impl_index]
+      impl_url = r.json()[self.PROP_PEIMPLS][impl_index]
     except IndexError:
       raise ImplementationNotFound()
       return
@@ -139,12 +143,12 @@ class VerceRegManager:
       r.raise_for_status()
       return
       
-    if 'fnimpls' not in r.json():
+    if self.PROP_FNIMPLS not in r.json():
       raise NotFunctionError()
       return 
       
     try:
-      impl_url = r.json()['fnimpls'][impl_index]
+      impl_url = r.json()[self.PROP_FNIMPLS][impl_index]
     except IndexError:
       raise ImplementationNotFound()
       return
