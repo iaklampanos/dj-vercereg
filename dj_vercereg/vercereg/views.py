@@ -20,6 +20,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 
+from django.db import IntegrityError
+
 from guardian.shortcuts import assign_perm
 
 from rest_framework import permissions
@@ -49,6 +51,7 @@ from vercereg.serializers import FnImplementationSerializer
 from vercereg.serializers import FunctionSigSerializer
 from vercereg.serializers import GroupSerializer
 from vercereg.serializers import RegistryUserGroupSerializer
+from vercereg.serializers import RegistryUserGroupPutSerializer
 # from vercereg.serializers import AdminRegistryUserGroupSerializer
 from vercereg.serializers import LiteralSigSerializer
 from vercereg.serializers import PEImplementationSerializer
@@ -90,37 +93,34 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   queryset = RegistryUserGroup.objects.all()
   serializer_class = RegistryUserGroupSerializer
 
-  # def get_serializer_class(self):
-  #   if self.request.user.is_superuser or self.request.user.is_staff:
-  #     return AdminRegistryUserGroupSerializer
-  #   else:
-  #     return RegistryUserGroupSerializer
+  def get_serializer_class(self):
+    if self.request.method == 'PUT':
+      return RegistryUserGroupPutSerializer
+    else:
+      return RegistryUserGroupSerializer
 
-  @transaction.atomic
   def create(self, request):
     reqdata = request.DATA
-
+    user = request.user
+    
     # Create a new group
     try:
       g = Group(name=reqdata['group_name'])
       g.save()
-    except:
-      return Response({'error when saving group':'name uniqueness constraint not satisfied or unknown internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # Extract owner
-    try:
-      ownerurl = reqdata['owner']
-      # FIXME Using manual id extraction, there must be a better way...
-      oid = extract_id_from_url(ownerurl)
-      o = User.objects.get(id=oid)
-    except:
-      return Response({'error resolving group owner':'the user may not exist in the DB, or bad request.'}, status=status.HTTP_400_BAD_REQUEST)
+      g.user_set.add(user)
+    except IntegrityError:
+      msg = {'error when persisting Group':'name uniqueness constraint not satisfied or unknown internal error'}
+      if g.pk: g.delete()
+      return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     try:
-      rug = RegistryUserGroup(group=g, description=reqdata['description'], owner=o)
+      rug = RegistryUserGroup(group=g, description=reqdata['description'], owner=user)
       rug.save()
     except:
-      return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+      msg = {'error when persisting RegistryUserGroup':'name uniqueness constraint not satisfied or unknown internal error'}
+      if rug.pk: rug.delete()
+      return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+      
     serializer = RegistryUserGroupSerializer(rug, many=False, context={'request':request})
     return Response(serializer.data)
 
@@ -128,7 +128,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   @transaction.atomic
   def update(self, request, pk=None):
     rug = RegistryUserGroup.objects.get(pk=pk)
-
+    
     # Update the group:
     g = rug.group
     if (g.name != request.DATA['group_name']):
@@ -137,7 +137,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
 
     # Update the registryusergroup
     # FIXME Using manual id extraction, there must be a better way...
-    id = extract_id_from_url(request.DATA['owner'])
+    id = extract_id_from_url(request.DATA.get('owner'))
     user = User.objects.get(id=id)
     rug.owner = user
     rug.description = request.DATA['description']
@@ -177,12 +177,12 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     pes = functions = literals = fnimpls = peimpls = packages = None
     
-    kind_to_show = self.request.QUERY_PARAMS.get('kind')
-    ls = 'ls' in self.request.QUERY_PARAMS
+    kind_to_show = request.QUERY_PARAMS.get('kind')
+    ls = 'ls' in request.QUERY_PARAMS
     
     # Exact matching on the fqn of a workspace item (fqn -> pkg.name)
     # fqns are unique within workspaces, so 0..1 results are expected when fqn is specified; ls is ignored (as we know the fqn of the item we're looking for already)
-    fqn_param = self.request.QUERY_PARAMS.get('fqn')
+    fqn_param = request.QUERY_PARAMS.get('fqn')
     fqn_pkg = None
     fqn_nam = None
     if fqn_param:
@@ -217,7 +217,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
       msg = {'resource not found':'%s not found in workspace %s'%(fqn_param,wspc.name)}
       return Response(msg, status=status.HTTP_404_NOT_FOUND)
 
-    starts_with = self.request.QUERY_PARAMS.get('startswith')
+    starts_with = request.QUERY_PARAMS.get('startswith')
     
     # fqn takes precedence over starts_with, in case both are specified
     if not starts_with or fqn_param: starts_with=''
@@ -352,7 +352,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         paramType: query
         type: long
     '''
-    clone_of = self.request.QUERY_PARAMS.get('clone_of')
+    clone_of = request.QUERY_PARAMS.get('clone_of')
     if not clone_of:
       return super(WorkspaceViewSet, self).create(request)
 
@@ -371,11 +371,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
       msg = {'error':'could not retrieve workspace with id %s'%(clone_of)}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
-    if not self.request.DATA.get('name'):
+    if not request.DATA.get('name'):
       msg = {'error':'name is required'}
       return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
-    cloner = WorkspaceCloner(or_wspc, self.request.DATA.get('name'), request.user)
+    cloner = WorkspaceCloner(or_wspc, request.DATA.get('name'), request.user)
     try:
       with transaction.atomic():
         cloned_workspace = cloner.clone()
@@ -393,7 +393,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
   #           description: search terms for looking up workspaces
   #           type: string
   #   '''
-  #   if self.request.QUERY_PARAMS.get('search'):
+  #   if request.QUERY_PARAMS.get('search'):
   #       # resort to default bahaviour
   #       return super(WorkspaceViewSet, self).list(request)
   #   allowed_workspaces = []
@@ -489,7 +489,7 @@ class UserViewSet(viewsets.ModelViewSet):
   def get_serializer_class(self):
     if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
       return UserSerializer
-    # elif self.request.method=='PUT':
+    # elif request.method=='PUT':
     else:
       return UserUpdateSerializer
 
@@ -516,7 +516,7 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = self.request.user
+      obj.user = request.user
 
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
@@ -529,7 +529,7 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = self.request.user
+      obj.user = request.user
 
 
 class FunctionParameterViewSet(viewsets.ModelViewSet):
@@ -577,7 +577,7 @@ class PESigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = self.request.user
+      obj.user = request.user
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
@@ -594,7 +594,7 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = self.request.user
+      obj.user = request.user
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
@@ -607,4 +607,4 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = self.request.user
+      obj.user = request.user

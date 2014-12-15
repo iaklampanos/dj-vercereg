@@ -30,7 +30,10 @@ class RegistryUserGroupAccessPermissions(permissions.BasePermission):
 
   def has_object_permission(self, request, view, obj):
     '''Full permissions for superusers, staff or group owners'''
-    return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
+    if not request.method in permissions.SAFE_METHODS:
+      return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
+    else:
+      return True
 
 
 class ConnectionPermissions(permissions.BasePermission):

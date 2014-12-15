@@ -47,9 +47,9 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
   class Meta:
     model = User
-    fields = ('url', 'username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns')
+    fields = ('url', 'username', 'email', 'first_name', 'last_name', 'password', 'groups', 'ownsgroups')
     write_only_fields = ('password',)
-    read_only_fields = ('owns',)
+    read_only_fields = ('ownsgroups',)
 
 ##############################################################################
 class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
@@ -66,15 +66,26 @@ class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
 
 ##############################################################################
 class RegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):
-  group_name = serializers.CharField(source='get_group_name')#, read_only=True)
-  owner_username = serializers.CharField(source='get_owner_username', read_only=True)
+  group_name = serializers.CharField(source='get_group_name')
+  # FIXME: The following is excluded as it break django rest for some reason. Fix in the future.
+  # ownerusername = serializers.CharField(source='get_owner_username', read_only=True)
 
   class Meta:
     model = RegistryUserGroup
-    fields = ('url', 'group_name', 'owner_username', 'group', 'owner', 'description',)
-    read_only_fields = ('group', 'owner')
+    fields = ('url', 'group_name', 'group', 'owner', 'description', )
+    read_only_fields = ('group', 'owner', )
+
+class RegistryUserGroupPutSerializer(serializers.HyperlinkedModelSerializer):
+  group_name = serializers.CharField(source='get_group_name')
+  # ownerusername = serializers.CharField(source='get_owner_username', read_only=True)
+
+  class Meta:
+    model = RegistryUserGroup
+    fields = ('url', 'group_name', 'group', 'owner', 'description', )
+    read_only_fields = ('group', )
 
 ##############################################################################
+  
 
 # class AdminRegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):
 #   group_name = serializers.CharField(source='get_group_name')#, read_only=True)
