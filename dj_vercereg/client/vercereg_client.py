@@ -31,13 +31,13 @@ class VerceRegClient:
   def __init__(self):
     self.history = collections.deque(maxlen=self.HISTORY_LENGTH)
     self.manager = VerceRegManager()
-  
+
 
 def main():
   # TODO: Define and implement commands for the client
   # parser = argparse.ArgumentParser(description='Client for the VERCE Registry.')
   # parser.add_argument('command', metavar='Command', type=str,
-  #                    help='a VERCE Registry command')
+  #                      help='a VERCE Registry command')
                      
   manager = VerceRegManager()
   manager.login('admin', 'admin')

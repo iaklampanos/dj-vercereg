@@ -30,7 +30,10 @@ class RegistryUserGroupAccessPermissions(permissions.BasePermission):
 
   def has_object_permission(self, request, view, obj):
     '''Full permissions for superusers, staff or group owners'''
-    return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
+    if not request.method in permissions.SAFE_METHODS:
+      return request.user.is_superuser or request.user.is_staff or request.user==obj.owner
+    else:
+      return True
 
 
 class ConnectionPermissions(permissions.BasePermission):
@@ -53,7 +56,10 @@ class UserAccessPermissions(permissions.BasePermission):
       return True
 
   def has_object_permission(self, request, view, obj):
-    return request.user.is_superuser or request.user.is_staff or request.user==obj
+    if request.method=='PUT' or request.method in permissions.SAFE_METHODS:
+      return request.user.is_superuser or request.user.is_staff or request.user==obj
+    else:
+      return request.user.is_superuser or request.user.is_staff
 
 
 class WorkspaceItemPermissions(permissions.BasePermission):
@@ -66,7 +72,6 @@ class WorkspaceItemPermissions(permissions.BasePermission):
       return request.user == obj.user or request.user.is_superuser or request.user.is_staff or len(request.user.groups.filter(name='default_read_all_group')) > 0
     else:
       # print request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
-
       return request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
 
 

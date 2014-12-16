@@ -24,7 +24,8 @@ import reversion
 import datetime
 from vercereg.utils import get_base_rest_uri
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+
 import re
 
 def validate_package(value):
@@ -40,7 +41,7 @@ def validate_name(value):
 class RegistryUserGroup(models.Model):
   '''Extends the group model so that it incorporates owner-users.'''
   group = models.OneToOneField(Group)
-  owner = models.ForeignKey(User, related_name='owns')
+  owner = models.ForeignKey(User, related_name='ownsgroups', null=False, blank=False)
   description = models.TextField(null=True, blank=True)
 
   def get_group_name(self):
@@ -48,7 +49,6 @@ class RegistryUserGroup(models.Model):
 
   def get_owner_username(self):
     return self.owner.username
-
 
 class Workspace(models.Model):
   ''' The workspace entity. A workspace is designed so that it provides an independent sandbox for storing and working with various kinds of workspace items and related entities. A workspace is identified by the user+name. '''

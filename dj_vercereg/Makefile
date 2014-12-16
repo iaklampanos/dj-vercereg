@@ -30,6 +30,7 @@ help::
 	@echo "Commands:"
 	@echo "   db-shell: execute a mysql shell to the VERCE Registry DB"
 	@echo "   db-dropcreate: drop and create the DB schema"
+	@echo "   clean: drop and create the DB schema as well as add fixtures and a superuser"
 	
 db-shell::
 	$(DB_COMMAND)
@@ -37,3 +38,8 @@ db-shell::
 dc:: db-dropcreate
 db-dropcreate::
 	echo "drop schema $(DB_NAME); create schema $(DB_NAME)" | $(DB_COMMAND)
+
+clean:: dc
+	python manage.py syncdb
+	python manage.py loaddata fixtures/def_group.json
+	python manage.py createsuperuser
