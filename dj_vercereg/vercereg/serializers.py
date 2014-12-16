@@ -22,14 +22,11 @@ from vercereg.utils import get_base_rest_uri
 
 ##############################################################################
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-  groups = serializers.SerializerMethodField('get_reg_groups')
 
   def get_reg_groups(self, obj):
     toret = []
-    # print '>> ', str(obj.groups)
     request = self.context.get('request')
     for v in obj.groups.values():
-      # FIXME: Constructs the URL manually, via the request, which is not advisable (insecure and not very robust)
       group_id = v['id']
       g = Group.objects.get(id=group_id)
       try:
@@ -39,6 +36,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
       except RegistryUserGroup.DoesNotExist:
         pass
     return toret
+
+  groups = serializers.SerializerMethodField('get_reg_groups')
 
   def restore_object(self, attrs, instance=None):
     user = super(UserSerializer, self).restore_object(attrs, instance)
@@ -51,18 +50,34 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     write_only_fields = ('password',)
     read_only_fields = ('ownsgroups',)
 
-##############################################################################
-class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
-  class Meta:
-    model = User
-    fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'owns',)
-    write_only_fields = ('password',)
-    read_only_fields = ('username',)
 
-  def restore_object(self, attrs, instance=None):
-    user = super(UserUpdateSerializer, self).restore_object(attrs, instance)
-    user.set_password(attrs['password'])
-    return user
+# class UserUpdateSerializer(serializers.HyperlinkedModelSerializer):
+#   groups = serializers.SerializerMethodField('get_reg_groups')
+#
+#   def get_reg_groups(self, obj):
+#     toret = []
+#     request = self.context.get('request')
+#     for v in obj.groups.values():
+#       group_id = v['id']
+#       g = Group.objects.get(id=group_id)
+#       try:
+#         rug_instance = RegistryUserGroup.objects.get(group=g)
+#         rug = get_base_rest_uri(request) + 'registryusergroups/' + str(rug_instance.id) + '/'
+#         toret.append(rug)
+#       except RegistryUserGroup.DoesNotExist:
+#         pass
+#     return toret
+#
+#   def restore_object(self, attrs, instance=None):
+#     user = super(UserUpdateSerializer, self).restore_object(attrs, instance)
+#     user.set_password(attrs['password'])
+#     return user
+#
+#   class Meta:
+#     model = User
+#     fields = ('username', 'email', 'first_name', 'last_name', 'password', 'groups', 'ownsgroups',)
+#     write_only_fields = ('password',)
+#     read_only_fields = ('username',)
 
 ##############################################################################
 class RegistryUserGroupSerializer(serializers.HyperlinkedModelSerializer):

@@ -57,7 +57,7 @@ from vercereg.serializers import LiteralSigSerializer
 from vercereg.serializers import PEImplementationSerializer
 from vercereg.serializers import PESigSerializer
 from vercereg.serializers import UserSerializer
-from vercereg.serializers import UserUpdateSerializer
+# from vercereg.serializers import UserUpdateSerializer
 from vercereg.serializers import WorkspaceSerializer
 from vercereg.serializers import WorkspaceDeepSerializer
 from vercereg.serializers import ConnectionSerializer
@@ -482,18 +482,14 @@ class UserViewSet(viewsets.ModelViewSet):
       if u.pk: u.delete()
       return Response({'error when saving registry user group':'internal error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
     serializer = UserSerializer(u, context={'request': request})
     return Response(serializer.data)
 
-  def get_serializer_class(self):
-    if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
-      return UserSerializer
-    # elif request.method=='PUT':
-    else:
-      return UserUpdateSerializer
-
-
+  # def get_serializer_class(self):
+  #   if self.request.method in permissions.SAFE_METHODS or self.request.method=='POST':
+  #     return UserSerializer
+  #   else:
+  #     return UserUpdateSerializer
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -516,7 +512,7 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = request.user
+      obj.user = self.request.user
 
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
@@ -529,7 +525,7 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = request.user
+      obj.user = self.request.user
 
 
 class FunctionParameterViewSet(viewsets.ModelViewSet):
@@ -577,7 +573,7 @@ class PESigViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = request.user
+      obj.user = self.request.user
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
@@ -594,7 +590,7 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = request.user
+      obj.user = self.request.user
 
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
@@ -607,4 +603,4 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
   def pre_save(self, obj):
     obj.creation_date = timezone.now()
     if not obj.pk:
-      obj.user = request.user
+      obj.user = self.request.user
