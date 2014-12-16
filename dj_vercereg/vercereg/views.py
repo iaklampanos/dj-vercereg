@@ -84,7 +84,7 @@ def set_workspace_default_permissions(wspc, user):
   assign_perm('vercereg.view_contents_workspace', user, wspc)
   assign_perm('vercereg.view_meta_workspace', user, wspc)
 
-
+#
 class RegistryUserGroupViewSet(viewsets.ModelViewSet):
   ''' Registry user group resource.  '''
 
