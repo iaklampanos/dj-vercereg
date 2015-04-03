@@ -19,11 +19,17 @@ from tempfile import NamedTemporaryFile
 import json
 import datetime
 
+import logging
+logging.basicConfig()
+logger = logging.getLogger('DJREG_LIB')
+logger.setLevel(logging.INFO)
+
 class VerceRegManager:
   '''Interface with the registry, keeping some info on logging in, etc.'''
 
   token_filename_prefix = 'djvercereg_token_'
   token_file = None
+  token = None
   auth_header='' # TODO: Fill in / Internet connection...
   protocol='http'
   host='localhost'
@@ -59,12 +65,21 @@ class VerceRegManager:
   PROP_PEIMPLS='peimpls'
   PROP_FNIMPLS='fnimpls'
   
+  # For resolving json object types
+  TYPE_PE = 0
+  TYPE_FN = 1
+  TYPE_PEIMPL = 2
+  TYPE_FNIMPL = 3
+  TYPE_NOT_RECOGNISED=100
+  
   # def __init__(self):
   #   pass
   
+
   def get_base_url(self):
     return self.protocol + '://' + self.host + ':' + self.port
   
+
   def get_auth_token(self):
     if not self.logged_in:
       raise NotLoggedInError()
@@ -73,12 +88,31 @@ class VerceRegManager:
       token = f.readline().strip()
     return token
   
-  def get_auth_header(self):
+  def _get_auth_header(self):
+    '''Return the authentication header as used for requests to the registry.'''
     return {'Authorization':'Token %s'%(self.get_auth_token())}
+    
+    
+  def _valid_login(self, username):
+    ''' Return true if the client has already logged in and login is valid. '''
+    return self.logged_in and self.logged_in_username == username and (datetime.datetime.now()-self.logged_in_time).total_seconds() < self.PASSWORD_EXPIRATION_PERIOD_HRS * 60 * 60
+      
+  def _extract_kind_from_json_object(self, j):
+    '''
+    The kind/type is inferred based on the URL. Assumes this is called for single objects.
+    Return one of the TYPE* values defined in VerceRegManager.
+    '''
+    # logger.info(j)
+    rhs = j['url'][len(self.get_base_url())+1:]
+    kind = rhs[:rhs.find('/')]
+
+    if kind == 'pes': return VerceRegManager.TYPE_PE
+    elif kind == 'functions': return VerceRegManager.TYPE_FN
+    else: return VerceRegManager.TYPE_NOT_RECOGNISED
       
   def login(self, username, password):
     '''(Lazily) log into vercereg with the given credentials.'''
-    if self.logged_in and self.logged_in_username == username and (datetime.datetime.now()-logged_in_time).total_seconds() < self.PASSWORD_EXPIRATION_PERIOD_HRS * 60 * 60:
+    if self._valid_login(username):
       return True
     
     data = {'username':username, 'password':password}
@@ -90,9 +124,21 @@ class VerceRegManager:
       self.logged_in_username = username
       f = NamedTemporaryFile(prefix=self.token_filename_prefix, delete=False)
       self.token_file = f.name
-      f.write(json.loads(r.text)['token'])
+      self.token = json.loads(r.text)['token']
+      f.write(self.token)
       f.close()
     return self.logged_in
+  
+
+  def get_auth_token(self):
+    '''Return the authorization token.'''
+    #TODO Potentially unsafe operation - check this is safe
+    if self.logged_in:
+      return self.token
+    else:
+      raise NotLoggedInError()
+      return
+
 
   def clone(self, orig_workspace_id, name):
     '''Clone the given workspace into a new one with the name `name`. '''
@@ -101,9 +147,10 @@ class VerceRegManager:
       return
 
     url = self.get_base_url() + self.URL_WORKSPACES + '?clone_of=' + str(orig_workspace_id)
-    r = requests.post(url, data={'name':name}, headers=self.get_auth_header())
+    r = requests.post(url, data={'name':name}, headers=self._get_auth_header())
     print r.text
   
+
   def get_pe_implementation_code(self, workspace_id, pckg, name, impl_index=0):
     '''Return the implementation code of the given PE / identified by pckg-name.'''
     if not self.logged_in:
@@ -111,7 +158,7 @@ class VerceRegManager:
       return
     
     url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
-    r = requests.get(url, headers=self.get_auth_header())
+    r = requests.get(url, headers=self._get_auth_header())
     
     if r.status_code != requests.codes.ok:
       r.raise_for_status()
@@ -127,8 +174,9 @@ class VerceRegManager:
       raise ImplementationNotFound()
       return
       
-    r = requests.get(impl_url, headers=self.get_auth_header())
+    r = requests.get(impl_url, headers=self._get_auth_header())
     return r.json().get('code')
+
 
   def get_fn_implementation_code(self, workspace_id, pckg, name, impl_index=0):
     '''Return the implementation code of the given function / identified by pckg-name.'''
@@ -137,7 +185,7 @@ class VerceRegManager:
       return
     
     url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
-    r = requests.get(url, headers=self.get_auth_header())
+    r = requests.get(url, headers=self._get_auth_header())
     
     if r.status_code != requests.codes.ok:
       r.raise_for_status()
@@ -153,9 +201,62 @@ class VerceRegManager:
       raise ImplementationNotFound()
       return
       
-    r = requests.get(impl_url, headers=self.get_auth_header())
+    r = requests.get(impl_url, headers=self._get_auth_header())
     return r.json().get('code')
 
+
+  #TODO Implement
+  def get_spec(self, workspace_id, pckg, name): # optional
+    pass
+  
+  
+  #TODO Implement
+  def get_impl(self, workspace_id, pckg, name): # optional
+    pass
+    
+    
+  def get_pe_spec(self, workspace_id, pckg, name):
+    '''Return a JSON-coded specification of the PE identified by workspace_id, pckg.name'''
+    if not self.logged_in:
+      raise NotLoggedInError()
+      return
+    
+    url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
+    r = requests.get(url, headers=self._get_auth_header())
+    
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+      return
+      
+    if self._extract_kind_from_json_object(r.json()) != VerceRegManager.TYPE_PE:
+      raise NotPEError()
+      return
+    
+    return r.json()
+    
+  
+  def get_fn_spec(self, workspace_id, pckg, name):
+    '''Return a JSON-coded specification of the function identified by workspace_id, pckg.name'''
+    if not self.logged_in:
+      raise NotLoggedInError()
+      return
+    
+    url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
+    r = requests.get(url, headers=self._get_auth_header())
+    
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+      return
+      
+    if self._extract_kind_from_json_object(r.json()) != VerceRegManager.TYPE_FN:
+      raise NotPEError()
+      return
+    
+    return r.json()
+    
+    
+  def set_pe_spec(self, workspace_id, pckg, name):
+    pass 
 
 ## VERCE Registry library errors: ###########################
 

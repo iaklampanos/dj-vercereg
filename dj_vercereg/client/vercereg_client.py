@@ -21,6 +21,11 @@ import collections
 import argparse
 import datetime
 
+import logging
+logging.basicConfig()
+logger = logging.getLogger('DJREG_CLIENT')
+logger.setLevel(logging.INFO)
+
 from vercereg_lib import VerceRegManager
 
 class VerceRegClient:
@@ -41,9 +46,13 @@ def main():
                      
   manager = VerceRegManager()
   manager.login('admin', 'admin')
+  logger.info(manager.get_auth_token())
+  manager.login('admin', 'admin')
+  logger.info(manager.get_auth_token())
   # manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
-  print manager.get_pe_implementation_code(1, 'pckg.second', 'MyPE')
-  print manager.get_fn_implementation_code(1, 'fns', 'FNSIG')
+
+  logger.info(manager.get_pe_spec(1, 'pes', 'MyPE'))
+  logger.info(manager.get_pe_spec(1, 'fns', 'Fn1')) # should raise an exception
 
 if __name__ == '__main__':
   main()
