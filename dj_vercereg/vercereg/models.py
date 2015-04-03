@@ -187,7 +187,7 @@ class PESig(WorkspaceItem):
 
 class Connection(models.Model):
   '''
-  A model representing a PE connections. Connections are descriptions of pipes between PEs and belong to their respective PEs. As they are not designed to be dealt with independently of their PEs, connections are not workspace items.
+  A model repchromresenting a PE connections. Connections are descriptions of pipes between PEs and belong to their respective PEs. As they are not designed to be dealt with independently of their PEs, connections are not workspace items.
   '''
   CONNECTION_TYPES = (
     ('IN', 'In'),
