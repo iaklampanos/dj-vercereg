@@ -181,7 +181,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         """
-        Returns a list of workspaces.
+        Returns a  list of workspaces.
         ---
         parameters:
             - name: name
