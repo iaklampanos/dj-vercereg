@@ -72,9 +72,12 @@ class VerceRegManager:
   TYPE_FNIMPL = 3
   TYPE_NOT_RECOGNISED=100
   
+  # Connection types
+  CONN_TYPE_IN='IN'
+  CONN_TYPE_OUT='OUT'
+  
   # def __init__(self):
   #   pass
-  
 
   def get_base_url(self):
     return self.protocol + '://' + self.host + ':' + self.port
@@ -215,18 +218,33 @@ class VerceRegManager:
     pass
     
     
+  def delete_pe_spec(self, workspace_id, pckg, name):
+    '''Delete a PE sig / specification by workspace, package and name.'''
+    
+    if not self.logged_in: 
+      raise NotLoggedInError()
+    
+    url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
+    r = requests.get(url, headers=self._get_auth_header())
+    
+    # if not a PE or not found return
+    if 'url' not in r.json(): return
+    if self._extract_kind_from_json_object(r.json()) != VerceRegManager.TYPE_PE: return
+    
+    urldel = r.json()['url']
+    r2 = requests.delete(urldel, headers=self._get_auth_header())
+    
+    
   def get_pe_spec(self, workspace_id, pckg, name):
     '''Return a JSON-coded specification of the PE identified by workspace_id, pckg.name'''
     if not self.logged_in:
       raise NotLoggedInError()
-      return
     
     url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/?fqn=' + pckg + '.' + name
     r = requests.get(url, headers=self._get_auth_header())
     
     if r.status_code != requests.codes.ok:
       r.raise_for_status()
-      return
       
     if self._extract_kind_from_json_object(r.json()) != VerceRegManager.TYPE_PE:
       raise NotPEError()
@@ -255,8 +273,70 @@ class VerceRegManager:
     return r.json()
     
     
-  def set_pe_spec(self, workspace_id, pckg, name):
-    pass 
+  def register_pe_spec(self, workspace_id, pckg, name, descr=''):
+    '''Register a new PE specification or update an existing one. 
+    workspace_id is expected to be of type `long`'''
+    
+    if not self.logged_in: 
+      raise NotLoggedInError()
+      return
+    
+    workspace_url = self.get_base_url() + self.URL_WORKSPACES + str(workspace_id) + '/'
+    data = {'workspace':workspace_url, 'pckg':pckg, 'name':name, 'description':descr}
+    url = self.get_base_url() + self.URL_PES
+    r = requests.post(url, headers=self._get_auth_header(), data=data)
+    
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+    
+    return r.json()
+  
+  
+  def add_pe_connection(self, pe_id, kind, name, stype=None, dtype=None, comment=None, is_array=False, modifiers=None):
+    '''Add a new connection to an existing PE signature. modifiers should be colon-separated string values. pe_id is expected to be of type `long` - i.e. just the id, not the URL'''
+  
+    if not self.logged_in: raise NotLoggedInError()
+    
+    pe_url = self.get_base_url() + self.URL_PES + pe_id + '/'
+    url = self.get_base_url() + self.URL_CONNS #+ '/'
+    data = {'pesig':pe_url, 'kind':kind, 'name':name, 's_type':stype, 'd_type':dtype, 'comment':comment, 'is_array':is_array, 'modifiers':modifiers}
+
+    logger.info('New connection data: ' + str(data))
+    r = requests.post(url, headers=self._get_auth_header(), data=data)
+     
+    if r.status_code != requests.codes.ok:
+      r.raise_for_status()
+    
+    return r.json()
+  
+  
+  #TODO Implement
+  def delete_pe_connection(self, pe_id, name):
+    '''Delete the named connection from the given pe'''
+    pass
+    
+  
+  def add_pe_implementation(self, pe_id, code, pckg='peimpls', name=None, description=''):
+    '''Create a new implementation for the PE identified by `pe_id`.'''
+    
+    # Retrieve the corresponding PE
+    pe_url = self.get_base_url() + self.URL_PES + pe_id + '/'
+    pereq = requests.get(pe_url, headers=self._get_auth_header())
+    if pereq.status_code != requests.codes.ok: 
+      pereq.raise_for_status()
+      
+    if name==None:
+      name = pereq.json()['name'] + '_IMPL_' + str(datetime.date.today())
+    
+    workspace = pereq.json()['workspace']
+    data = {'description':description, 'code':code}
+
+
+  def add_fn_implementation(self, fn_id, code, pckg='fnimpls', name=None, description=''):
+    '''Create a new implementation for the function identified by `fn_id`.'''
+    pass
+    
+  
 
 ## VERCE Registry library errors: ###########################
 

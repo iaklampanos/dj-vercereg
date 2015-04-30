@@ -45,14 +45,23 @@ def main():
   #                      help='a VERCE Registry command')
                      
   manager = VerceRegManager()
-  manager.login('admin', 'admin')
+  manager.login('iraklis', 'iraklis')
   logger.info(manager.get_auth_token())
-  manager.login('admin', 'admin')
-  logger.info(manager.get_auth_token())
+  # manager.login('admin', 'admin')
+  # logger.info(manager.get_auth_token())
   # manager.clone(1, 'cloned_wspc'+'@'.join(str(datetime.datetime.now()).split()))
 
-  logger.info(manager.get_pe_spec(1, 'pes', 'MyPE'))
-  logger.info(manager.get_pe_spec(1, 'fns', 'Fn1')) # should raise an exception
+  # logger.info(manager.get_pe_spec(1, 'pes', 'MyPE'))
+  # logger.info(manager.get_pe_spec(1, 'fns', 'Fn1')) # should raise an exception
+  
+  manager.delete_pe_spec(1, 'libpck', 'LibPE11')
+  new_pe = manager.register_pe_spec(1, 'libpck', 'LibPE11', descr='Some description for a test PE')
+  new_conn = manager.add_pe_connection(str(new_pe['id']), kind='IN', name='CnName', stype='str', dtype='DTYPE', comment='My comment', is_array=True, modifiers='one:two')
+  manager.add_pe_connection(str(new_pe['id']), kind='OUT', name='outconn')
+
+  
+  
+
 
 if __name__ == '__main__':
   main()
