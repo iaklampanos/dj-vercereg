@@ -13,7 +13,14 @@
 # limitations under the License.
 
 from django.contrib import admin
-from vercereg.models import Workspace, PESig, LiteralSig, PEImplementation, FnImplementation, FunctionSig, Connection, RegistryUserGroup
+from vercereg.models import Workspace
+from vercereg.models import PESig
+from vercereg.models import LiteralSig
+from vercereg.models import PEImplementation
+from vercereg.models import FnImplementation
+from vercereg.models import FunctionSig
+from vercereg.models import Connection
+from vercereg.models import RegistryUserGroup
 from guardian.admin import GuardedModelAdmin
 from django.forms import TextInput, Textarea
 from django.db import models
@@ -22,84 +29,95 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.admin import GroupAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
+import watson
 
 
 class PEImplInLine(admin.StackedInline):
-  model = PEImplementation
-  extra = 1
+    model = PEImplementation
+    extra = 1
 
-  # def get_form(self, request, obj=None, **kwargs):
-  #   self.exclude = []
-  #   self.exclude.append('workspace')
-  #   return super(PEImplInLine, self).get_form(request, obj, **kwargs)
+    # def get_form(self, request, obj=None, **kwargs):
+    #   self.exclude = []
+    #   self.exclude.append('workspace')
+    #   return super(PEImplInLine, self).get_form(request, obj, **kwargs)
 
-  # def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-  #   field = super(PEImplInLine, self).formfield_for_foreignkey(db_field, request, **kwargs)
-  #
-  #   if db_field.name == 'workspace':
-  #     print ' >1> ' + str(db_field.name)
-  #     print ' *2* ' + str(request._obj_.workspace)
-  #     print ' $3$ ' + str(field)
-  #     if request._obj_ is not None:
-  #       field.queryset = field.queryset.none()
-  #       field.queryset = field.queryset.filter(workspace__exact = request._obj_.workspace)
-  #     else:
-  #       field.queryset = field.queryset.none()
-  #   return field
+    # def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+    #   field = super(PEImplInLine, self).formfield_for_foreignkey(db_field, request, **kwargs)
+    #
+    #   if db_field.name == 'workspace':
+    #     print ' >1> ' + str(db_field.name)
+    #     print ' *2* ' + str(request._obj_.workspace)
+    #     print ' $3$ ' + str(field)
+    #     if request._obj_ is not None:
+    #       field.queryset = field.queryset.none()
+    #       field.queryset = field.queryset.filter(workspace__exact = request._obj_.workspace)
+    #     else:
+    #       field.queryset = field.queryset.none()
+    #   return field
 
 class FnImplInLine(admin.StackedInline):
-  model = FnImplementation
-  extra = 1
+    model = FnImplementation
+    extra = 1
 
 class ConnectionInLine(admin.TabularInline):
-  formfield_overrides = {
-    models.CharField: {'widget': TextInput(attrs={'size':'20'})},
-    models.TextField: {'widget': Textarea(attrs={'rows':1, 'cols':30})},
-  }
-  model = Connection
-  extra = 1
+    formfield_overrides = {
+        models.CharField: {'widget': TextInput(attrs={'size':'20'})},
+        models.TextField: {'widget': Textarea(attrs={'rows':1, 'cols':30})},
+    }
+    model = Connection
+    extra = 1
 
-class PESigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
-  list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
-  inlines = [ConnectionInLine, PEImplInLine,]
+class PESigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+                 # admin.ModelAdmin):
+    list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
+    inlines = [ConnectionInLine, PEImplInLine,]
+    search_fields = ('description', 'name',)
 
-  # def get_form(self, request, obj=None, **kwargs):
-  #   # just save obj reference for future processing in Inline
-  #   request._obj_ = obj
-  #   return super(PESigAdmin, self).get_form(request, obj, **kwargs)
+    # def get_form(self, request, obj=None, **kwargs):
+    #   # just save obj reference for future processing in Inline
+    #   request._obj_ = obj
+    #   return super(PESigAdmin, self).get_form(request, obj, **kwargs)
 
-class LiteralSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
-  list_display = ('workspace', 'pckg', 'name', 'user', 'description', 'value')
+class LiteralSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+    list_display = ('workspace', 'pckg', 'name', 'user', 'description', 'value')
+    search_fields = ('name', 'description', 'value')
 
-class FunctionSigAdmin(reversion.VersionAdmin, admin.ModelAdmin):
-  list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
-  inlines = [FnImplInLine, ]
+class FunctionSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+                       # admin.ModelAdmin):
+    list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
+    inlines = [FnImplInLine, ]
+    search_fields = ('description', 'name',)
 
 class PEImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
-  list_display = ('parent_sig', 'description', 'short_code')
+    list_display = ('parent_sig', 'description', 'short_code')
 
 class FnImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
-  list_display = ('parent_sig', 'description', 'short_code')
+    list_display = ('parent_sig', 'description', 'short_code')
 
 class PESigsInLine(admin.TabularInline):
-  model = PESig
-  extra = 1
+    model = PESig
+    extra = 1
 
 class FunctionSigsInLine(admin.TabularInline):
-  model = FunctionSig
-  extra = 1
+    model = FunctionSig
+    extra = 1
 
-class WorkspaceAdmin(reversion.VersionAdmin, GuardedModelAdmin):
-  list_display = ('name', 'description', 'owner', )
-  # inlines = [PESigsInLine, FunctionSigsInLine]
+class WorkspaceAdmin(reversion.VersionAdmin,
+                     GuardedModelAdmin,
+                     watson.SearchAdmin):
+    list_display = ('name', 'description', 'owner', )
+    search_fields = ('name', 'description',)
+    # inlines = [PESigsInLine, FunctionSigsInLine]
 
 
 class RegistryUserGroupInline(admin.StackedInline):
-  model = RegistryUserGroup
-  can_delete = False
+    model = RegistryUserGroup
+    can_delete = False
 
 class GroupAdmin(GroupAdmin):
-  inlines = [RegistryUserGroupInline]
+    inlines = [RegistryUserGroupInline]
+
+
 
 admin.site.unregister(Group)
 admin.site.register(Group, GroupAdmin)

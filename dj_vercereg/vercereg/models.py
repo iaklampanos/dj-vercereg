@@ -165,6 +165,7 @@ class FunctionSig(WorkspaceItem):
     """
     description = models.TextField(null=True, blank=True)
     return_type = models.CharField(max_length=30)
+    # return_description = models.TextField(null=True, blank=True)
 
     def _get_full_name(self):
         return '%s.%s' % (self.pckg, self.name)

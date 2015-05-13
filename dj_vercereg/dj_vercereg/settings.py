@@ -41,7 +41,7 @@ TEMPLATE_DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Application definition
+# application definition
 # TEMPLATE_CONTEXT_PROCESSORS = (
 #     "django.contrib.auth.context_processors.auth",
 #     "django.core.context_processors.debug",
@@ -68,6 +68,7 @@ INSTALLED_APPS = (
     # 'django_pdb',
     'guardian',
     'rest_framework_swagger',
+    'watson',
 )
 
 MIDDLEWARE_CLASSES = (

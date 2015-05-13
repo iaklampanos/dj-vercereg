@@ -65,6 +65,8 @@ from vercereg.serializers import FunctionParameterSerializer
 
 from django.db import transaction
 
+import watson
+
 from vercereg.utils import extract_id_from_url
 from vercereg.utils import get_base_rest_uri
 from vercereg.workspace_utils import WorkspaceCloner
@@ -191,10 +193,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
               description: The username the workspace is associated with
                   (workspaces are uniquely identifiable for individual users)
               paramType: query
+            - name: search
+              description: perform a simple full-text on descriptions and names
+                  of workspaces.
+              paramType: query
         """
         name_param = request.QUERY_PARAMS.get('name')
         username_param = request.QUERY_PARAMS.get('username')
-
+        search_param = request.QUERY_PARAMS.get('search')
         if username_param:
             corr_user = User.objects.filter(username=username_param)
         if name_param and username_param:
@@ -204,6 +210,8 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             objects = Workspace.objects.filter(name=name_param)
         elif not name_param and username_param:
             objects = Workspace.objects.filter(owner=corr_user)
+        elif search_param:
+            objects = watson.filter(Workspace, search_param)
         else:
             objects = Workspace.objects.all()
 
@@ -253,6 +261,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                     exactly. The fqn is in the form of package.name. The use of
                     fqn takes precedence over other parameters.
                 paramType: query
+              - name: search
+                description: Perform a simple full-text search over the 
+                    workspace's contents. The use of 'search' takes precedence
+                    over other parameters.
+                paramType: query
         """
         allowed_kinds_to_show = ['pes', 'functions', 'literals',
                                  'fn_implementations', 'pe_implementations',
@@ -263,6 +276,32 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
         kind_to_show = request.QUERY_PARAMS.get('kind')
         ls = 'ls' in request.QUERY_PARAMS
+        
+        search_param = request.QUERY_PARAMS.get('search')
+        
+        if search_param:
+            print 'IN SEARCH'
+            self.check_object_permissions(request, wspc)
+            serializer = WorkspaceDeepSerializer(
+                wspc,
+                context={'request': request})
+            allpes = PESig.objects.filter(workspace=wspc)
+            pes = watson.filter(allpes, search_param)
+            peserial = PESigSerializer(pes,
+                                       context={'request': request},
+                                       many=True)
+            allfns = FunctionSig.objects.filter(workspace=wspc)
+            fns = watson.filter(allfns, search_param)
+            fnserial = FunctionSigSerializer(fns, 
+                                             context={'request': request}, 
+                                             many=True)
+            alllits = LiteralSig.objects.filter(workspace=wspc)
+            lits = watson.filter(alllits, search_param)
+            litserial = LiteralSigSerializer(lits,
+                                             context={'request': request},
+                                             many=True)
+            ret = peserial.data + fnserial.data + litserial.data
+            return Response(ret)
 
         # Exact matching on the fqn of a workspace item (fqn -> pkg.name)
         # fqns are unique within workspaces, so 0..1 results are expected when
@@ -464,7 +503,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                         serializer.data['packages'] = packages
                 else:
                     pass
-                    # FIXME: The following does not work; fix iff important
+                    # FIXME: The following does not work; fix if important
                     # serializer.data['pes'] = list(pes)
                     # serializer.data['functions'] = functions
                     # serializer.data['literals'] = literals
@@ -526,8 +565,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                                       for x in fnimpls]
                 dataret['packages'] = packages
 
-            return Response(dataret)
-
+            return Response(dataret)            
         # if all else fails, assert we couldn't understand the request
         msg = {'error': 'bad request'}
         return Response(msg, status=status.HTTP_400_BAD_REQUEST)
@@ -856,7 +894,7 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         message = {'error':
-                   'general listing of PE implementations parameters' +
+                   'general listing of PE implementations' +
                    ' is not permitted'}
         return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -878,6 +916,12 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
 
     queryset = FnImplementation.objects.all()
     serializer_class = FnImplementationSerializer
+
+    def list(self, request):
+        message = {'error':
+                   'general listing of function implementations' +
+                   ' is not permitted'}
+        return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def pre_save(self, obj):
         obj.creation_date = timezone.now()

@@ -153,6 +153,8 @@ class PEImplementationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = PEImplementation
         fields = (
+            'id',
+            'url',
             'description',
             'code',
             'parent_sig',
@@ -170,6 +172,8 @@ class FnImplementationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = FnImplementation
         fields = (
+            'id',
+            'url',
             'description',
             'code',
             'parent_sig',
