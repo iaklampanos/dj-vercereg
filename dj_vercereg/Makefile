@@ -23,7 +23,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_COMMAND=$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) $(DB_NAME)
 
-help::
+help:://
 	@echo "Help:"
 	@echo "   make <command> <params>"
 	@echo ""
@@ -43,3 +43,5 @@ clean:: dc
 	python manage.py syncdb
 	python manage.py loaddata fixtures/def_group.json
 	python manage.py createsuperuser
+	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) < ../sql/fix_mysql_for_watson.sql
+	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) dj_vercereg < ../sql/fix_mysql_for_watson.sql

@@ -79,7 +79,6 @@ class Workspace(models.Model):
         validators=[validate_name])
     owner = models.ForeignKey(User)
     description = models.TextField(null=True, blank=True)
-    unique_together = (("owner", "name"),)
     creation_date = models.DateTimeField(default=datetime.datetime.now())
 
     def __unicode__(self):
@@ -101,6 +100,7 @@ class Workspace(models.Model):
         return self.fnimplementation_set.get_queryset()
 
     class Meta:
+        unique_together = ('owner', 'name', )
         verbose_name = 'workspace'
         permissions = (
             ('view_meta_workspace',

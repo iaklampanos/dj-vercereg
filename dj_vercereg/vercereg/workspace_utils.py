@@ -146,7 +146,11 @@ class WorkspaceCloner:
     '''Deep clone the original workspace into the target and return it.'''
     # print 'Cloning ' + str(self.original_workspace)
 
-    self.target_workspace = Workspace(name=self.name, owner=self.user, creation_date=timezone.now(), description=self.original_workspace.description)
+    self.target_workspace = Workspace(
+      name=self.name,
+      owner=self.user,
+      creation_date=timezone.now(),
+      description=self.original_workspace.description)
     self.target_workspace.save()
 
     for pe in self.original_workspace.get_pesigs():
