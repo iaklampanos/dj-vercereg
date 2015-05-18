@@ -72,7 +72,7 @@ class WorkspaceItemPermissions(permissions.BasePermission):
       return request.user == obj.user or request.user.is_superuser or request.user.is_staff or len(request.user.groups.filter(name='default_read_all_group')) > 0
     else:
       # print request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
-      return request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_content_workspace', obj.workspace)
+      return request.user == obj.workspace.owner or request.user.is_superuser or request.user.is_staff or request.user.has_perm('modify_contents_workspace', obj.workspace)
 
 
 class WorkspaceBasedPermissions(permissions.BasePermission):
