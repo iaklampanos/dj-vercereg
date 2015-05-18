@@ -600,11 +600,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         except PermissionDenied:
             msg = {'error': 'unauthorized access'}
             return Response(msg, status=status.HTTP_401_UNAUTHORIZED)
-        except:
-            msg = {
-                'error': 'could not retrieve workspace with id %s' %
-                (clone_of)}
-            return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+        # except:
+        #     msg = {
+        #         'error': 'could not retrieve workspace with id %s' %
+        #         (clone_of)}
+        #     return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
         if not request.DATA.get('name'):
             msg = {'error': 'name is required'}
