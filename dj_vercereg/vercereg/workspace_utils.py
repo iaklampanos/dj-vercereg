@@ -150,6 +150,7 @@ class WorkspaceCloner:
       name=self.name,
       owner=self.user,
       creation_date=timezone.now(),
+      clone_of=self.original_workspace,
       description=self.original_workspace.description)
     self.target_workspace.save()
 

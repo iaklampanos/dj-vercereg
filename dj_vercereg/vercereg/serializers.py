@@ -191,7 +191,8 @@ class WorkspaceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Workspace
         depth = 0
-        fields = ('id', 'url', 'name', 'owner', 'description', 'creation_date')
+        fields = ('id', 'url', 'name', 'owner', 'description', 
+                  'clone_of', 'creation_date')
         read_only_fields = ('owner', 'creation_date',)
 
 ##############################################################################

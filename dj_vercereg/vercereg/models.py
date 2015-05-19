@@ -78,6 +78,7 @@ class Workspace(models.Model):
         blank=False,
         validators=[validate_name])
     owner = models.ForeignKey(User)
+    clone_of = models.ForeignKey('self', null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     creation_date = models.DateTimeField(default=datetime.datetime.now())
 
