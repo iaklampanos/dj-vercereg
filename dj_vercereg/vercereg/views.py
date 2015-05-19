@@ -262,7 +262,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                     fqn takes precedence over other parameters.
                 paramType: query
               - name: search
-                description: Perform a simple full-text search over the 
+                description: Perform a simple full-text search over the
                     workspace's contents. The use of 'search' takes precedence
                     over other parameters.
                 paramType: query
@@ -276,9 +276,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
         kind_to_show = request.QUERY_PARAMS.get('kind')
         ls = 'ls' in request.QUERY_PARAMS
-        
+
         search_param = request.QUERY_PARAMS.get('search')
-        
+
         if search_param:
             print 'IN SEARCH'
             self.check_object_permissions(request, wspc)
@@ -292,8 +292,8 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                                        many=True)
             allfns = FunctionSig.objects.filter(workspace=wspc)
             fns = watson.filter(allfns, search_param)
-            fnserial = FunctionSigSerializer(fns, 
-                                             context={'request': request}, 
+            fnserial = FunctionSigSerializer(fns,
+                                             context={'request': request},
                                              many=True)
             alllits = LiteralSig.objects.filter(workspace=wspc)
             lits = watson.filter(alllits, search_param)
@@ -565,7 +565,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                                       for x in fnimpls]
                 dataret['packages'] = packages
 
-            return Response(dataret)            
+            return Response(dataret)
         # if all else fails, assert we couldn't understand the request
         msg = {'error': 'bad request'}
         return Response(msg, status=status.HTTP_400_BAD_REQUEST)
@@ -792,8 +792,14 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
 
     queryset = LiteralSig.objects.all()
     serializer_class = LiteralSigSerializer
+    # Disable list view
+
+    def list(self, request):
+        message = {'error': 'general listing of connections is not permitted'}
+        return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
@@ -810,8 +816,14 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
 
     queryset = FunctionSig.objects.all()
     serializer_class = FunctionSigSerializer
+    
+    # Disable list view
+    def list(self, request):
+        message = {'error': 'general listing of connections is not permitted'}
+        return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
@@ -834,6 +846,9 @@ class FunctionParameterViewSet(viewsets.ModelViewSet):
             'error': 'general listing of function parameters is not permitted'}
         return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
+
 
 class ConnectionViewSet(viewsets.ModelViewSet):
 
@@ -849,6 +864,8 @@ class ConnectionViewSet(viewsets.ModelViewSet):
         message = {'error': 'general listing of connections is not permitted'}
         return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
 
 class PESigViewSet(viewsets.ModelViewSet):
 
@@ -874,7 +891,13 @@ class PESigViewSet(viewsets.ModelViewSet):
     #  context={'request':request})
     #   return Response(serializer.data)
 
+    # Disable list view
+    def list(self, request):
+        message = {'error': 'general listing of connections is not permitted'}
+        return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
     def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
@@ -899,6 +922,7 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
         return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
@@ -924,6 +948,7 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
         return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def pre_save(self, obj):
+        self.check_object_permissions(self.request, obj)
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
