@@ -620,6 +620,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 cloned_workspace = cloner.clone()
+                # All workspaces should be readable and clonable for now
+                g = Group.objects.get(name='default_read_all_group')
+                assign_perm('view_meta_workspace', g, cloned_workspace)
+                assign_perm('view_contents_workspace', g, cloned_workspace)
         except:
             msg = {'error': 'could not complete workspace cloning'}
             return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
