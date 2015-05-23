@@ -81,11 +81,15 @@ class UserAccessPermissions(permissions.BasePermission):
             return True
 
     def has_object_permission(self, request, view, obj):
-        if (request.method == 'PUT' or
-                request.method in permissions.SAFE_METHODS):
+        if request.method == 'PUT':
             return (request.user.is_superuser or
                     request.user.is_staff or
                     request.user == obj)
+        elif request.method in permissions.SAFE_METHODS:
+            return True
+                    # (request.user.is_superuser or
+                    # request.user.is_staff or
+                    # request.user == obj)
         else:
             return (request.user.is_superuser or
                     request.user.is_staff)
@@ -99,11 +103,20 @@ class WorkspaceItemPermissions(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
-            return (request.user == obj.user or
-                    request.user.is_superuser or
-                    request.user.is_staff or
-                    len(request.user.groups.filter(
-                        name='default_read_all_group')) > 0)
+            if 'copy_to' in request.QUERY_PARAMS:
+                # check we can write in the target workspace
+                print obj.workspace
+                return (request.user == obj.workspace.owner or
+                        request.user.is_superuser or
+                        request.user.is_staff or
+                        request.user.has_perm(
+                            'modify_contents_workspace', obj.workspace))
+            else:
+                return (request.user == obj.user or
+                        request.user.is_superuser or
+                        request.user.is_staff or
+                        len(request.user.groups.filter(
+                            name='default_read_all_group')) > 0)
         else:
             return (request.user == obj.workspace.owner or
                     request.user.is_superuser or

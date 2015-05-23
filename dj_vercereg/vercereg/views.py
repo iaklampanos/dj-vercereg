@@ -64,6 +64,7 @@ from vercereg.serializers import ConnectionSerializer
 from vercereg.serializers import FunctionParameterSerializer
 
 from django.db import transaction
+import django.core.exceptions
 
 import watson
 
@@ -73,6 +74,8 @@ from vercereg.workspace_utils import WorkspaceCloner
 
 import traceback
 import sys
+
+import utils
 
 
 def set_workspace_default_permissions(wspc, user):
@@ -224,7 +227,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                 pass
 
         if len(retlist) == 0:
-            return Response({})
+            return Response([])
         if name_param and username_param:
             # Return a single object
             serializer = WorkspaceSerializer(retlist[0],
@@ -610,21 +613,19 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             msg = {'error': 'name is required'}
             return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
-        cloner = WorkspaceCloner(
-            or_wspc,
-            request.DATA.get('name'),
-            request.user)
+        cloner = WorkspaceCloner(or_wspc,
+                                 request.DATA.get('name'),
+                                 request.user,
+                                 context={'request': request})
         try:
             with transaction.atomic():
                 cloned_workspace = cloner.clone()
         except:
             msg = {'error': 'could not complete workspace cloning'}
             return Response(msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        serializer = WorkspaceSerializer(
-            cloned_workspace,
-            many=False,
-            context={
-                'request': request})
+        serializer = WorkspaceSerializer(cloned_workspace,
+                                         many=False,
+                                         context={'request': request})
         return Response(serializer.data)
 
     # def list(self, request):
@@ -683,6 +684,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         """ Returns a list of users. """
+        # message = {'error': 'general listing of users is not permitted'}
+        # return Response(message, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         allowed_users = []
         for u in self.queryset:
             try:
@@ -764,13 +768,6 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(u, context={'request': request})
         return Response(serializer.data)
 
-    # def get_serializer_class(self):
-    #   if self.request.method in permissions.SAFE_METHODS or
-    #          self.request.method=='POST':
-    #     return UserSerializer
-    #   else:
-    #     return UserUpdateSerializer
-
 
 class GroupViewSet(viewsets.ModelViewSet):
 
@@ -803,6 +800,70 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
+    
+    def retrieve(self, request, pk=None):
+        """
+        Retrieves an item by id.
+        ---
+        parameters:
+          - name: copy_to
+            description: Copies the retrieved item into another workspace,
+                identified by the given id.
+            paramType: query
+          - name: target_name
+            description: An alternative pckg.name for the item to be copied
+                under.
+            paramType: query
+        """
+        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
+        target_name_param = request.QUERY_PARAMS.get('target_name')
+        
+        if not copy_to_id_param:
+            return super(LiteralSigViewSet, self).retrieve(request, pk)
+        else:
+            try:
+                lit = LiteralSig.objects.get(pk=pk)
+            except django.core.exceptions.ObjectDoesNotExist:
+                return Response(
+                    {'error when copying literal':
+                     'resource does not exist'},
+                     status=status.HTTP_404_NOT_FOUND)
+            try:
+                wspc = Workspace.objects.get(pk=copy_to_id_param)
+            except:
+                return Response(
+                    {'error when copying literal':
+                     'target workspace does not exist or inaccessible'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            lit.workspace = wspc
+            self.check_object_permissions(request, lit)
+            pckg = name = None
+            if target_name_param:
+                pckg, name = utils.split_name(target_name_param)    
+            cloner = WorkspaceCloner(wspc,
+                                     None,
+                                     request.user,
+                                     target_workspace=wspc,
+                                     context={'request': request})
+            clone = None
+            try:
+                clone = cloner.clone_literal(lit, pckg, name)
+            except IntegrityError as e:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying literal': 'integrity error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying literal': 'internal error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+            serializer = LiteralSigSerializer(clone,
+                                              context={'request': request})
+            return Response(serializer.data)
 
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
@@ -827,6 +888,70 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
+
+    def retrieve(self, request, pk=None):
+        """
+        Retrieves an item by id.
+        ---
+        parameters:
+          - name: copy_to
+            description: Copies the retrieved item into another workspace,
+                identified by the given id.
+            paramType: query
+          - name: target_name
+            description: An alternative pckg.name for the item to be copied
+                under.
+            paramType: query
+        """
+        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
+        target_name_param = request.QUERY_PARAMS.get('target_name')
+        
+        if not copy_to_id_param:
+            return super(FunctionSigViewSet, self).retrieve(request, pk)
+        else:
+            try:
+                obj = FunctionSig.objects.get(pk=pk)
+            except django.core.exceptions.ObjectDoesNotExist:
+                return Response(
+                    {'error when copying function':
+                     'resource does not exist'},
+                     status=status.HTTP_404_NOT_FOUND)
+            try:
+                wspc = Workspace.objects.get(pk=copy_to_id_param)
+            except:
+                return Response(
+                    {'error when copying function':
+                     'target workspace does not exist or inaccessible'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            obj.workspace = wspc
+            self.check_object_permissions(request, obj)
+            pckg = name = None
+            if target_name_param:
+                pckg, name = utils.split_name(target_name_param)    
+            cloner = WorkspaceCloner(wspc,
+                                     None,
+                                     request.user,
+                                     target_workspace=wspc,
+                                     context={'request': request})
+            clone = None
+            try:
+                clone = cloner.clone_function(obj, pckg, name)
+            except IntegrityError as e:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying function': 'integrity error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying function': 'internal error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+            serializer = FunctionSigSerializer(clone,
+                                               context={'request': request})
+            return Response(serializer.data)
 
 
 class FunctionParameterViewSet(viewsets.ModelViewSet):
@@ -901,6 +1026,70 @@ class PESigViewSet(viewsets.ModelViewSet):
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
+
+    def retrieve(self, request, pk=None):
+        """
+        Retrieves an item by id.
+        ---
+        parameters:
+          - name: copy_to
+            description: Copies the retrieved item into another workspace,
+                identified by the given id.
+            paramType: query
+          - name: target_name
+            description: An alternative pckg.name for the item to be copied
+                under.
+            paramType: query
+        """
+        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
+        target_name_param = request.QUERY_PARAMS.get('target_name')
+        
+        if not copy_to_id_param:
+            return super(PESigViewSet, self).retrieve(request, pk)
+        else:
+            try:
+                obj = PESig.objects.get(pk=pk)
+            except django.core.exceptions.ObjectDoesNotExist:
+                return Response(
+                    {'error when copying PE':
+                     'resource does not exist'},
+                     status=status.HTTP_404_NOT_FOUND)
+            try:
+                wspc = Workspace.objects.get(pk=copy_to_id_param)
+            except:
+                return Response(
+                    {'error when copying PE':
+                     'target workspace does not exist or inaccessible'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            obj.workspace = wspc
+            self.check_object_permissions(request, obj)
+            pckg = name = None
+            if target_name_param:
+                pckg, name = utils.split_name(target_name_param)    
+            cloner = WorkspaceCloner(wspc,
+                                     None,
+                                     request.user,
+                                     target_workspace=wspc,
+                                     context={'request': request})
+            clone = None
+            try:
+                clone = cloner.clone_pe(obj, pckg, name)
+            except IntegrityError as e:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying PE': 'integrity error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except:
+                if clone and clone.pk:
+                    clone.delete()
+                return Response(
+                    {'error when copying PE': 'internal error'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+            serializer = PESigSerializer(clone,
+                                         context={'request': request})
+            return Response(serializer.data)
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):

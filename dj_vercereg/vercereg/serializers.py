@@ -161,7 +161,8 @@ class PEImplementationSerializer(serializers.HyperlinkedModelSerializer):
             'pckg',
             'name',
             'user',
-            'workspace')
+            'workspace',
+            'clone_of')
         read_only_fields = ('user', 'creation_date',)
 
 ##############################################################################
@@ -180,7 +181,8 @@ class FnImplementationSerializer(serializers.HyperlinkedModelSerializer):
             'pckg',
             'name',
             'user',
-            'workspace')
+            'workspace',
+            'clone_of')
         read_only_fields = ('user', 'creation_date',)
 
 ##############################################################################
@@ -264,7 +266,8 @@ class PESigSerializer(serializers.HyperlinkedModelSerializer):
             'description',
             'connections',
             'creation_date',
-            'peimpls')
+            'peimpls',
+            'clone_of')
         read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################
@@ -301,7 +304,8 @@ class FunctionSigSerializer(serializers.HyperlinkedModelSerializer):
             'creation_date',
             'return_type',
             'parameters',
-            'fnimpls')
+            'fnimpls',
+            'clone_of')
         read_only_fields = ('user', 'creation_date', )
 
 ##############################################################################
@@ -320,5 +324,5 @@ class LiteralSigSerializer(serializers.HyperlinkedModelSerializer):
             'value',
             'description',
             'creation_date',
-        )
+            'clone_of')
         read_only_fields = ('user', 'creation_date', )

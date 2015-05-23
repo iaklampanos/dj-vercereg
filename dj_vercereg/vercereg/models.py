@@ -78,9 +78,15 @@ class Workspace(models.Model):
         blank=False,
         validators=[validate_name])
     owner = models.ForeignKey(User)
-    clone_of = models.ForeignKey('self', null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     creation_date = models.DateTimeField(default=datetime.datetime.now())
+
+    # The URL of the original item
+    clone_of = models.CharField(max_length=200,
+                                null=True,
+                                blank=True)
+    # The JSON object at the time of the copying
+    clone_of_ser = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
         return u'%s: %s' % (self.owner.username, self.name)
@@ -130,8 +136,14 @@ class WorkspaceItem(models.Model):
     pckg = models.CharField(max_length=100, validators=[validate_package])
     name = models.CharField(max_length=100, validators=[validate_name])
     user = models.ForeignKey(User)
-    # group = models.ForeignKey(Group)
     creation_date = models.DateTimeField()
+
+    # The URL of the original item
+    clone_of = models.CharField(max_length=200,
+                                null=True,
+                                blank=True)
+    # The JSON object at the time of the copying
+    clone_of_ser = models.TextField(null=True, blank=True)
 
     class Meta:
         abstract = True

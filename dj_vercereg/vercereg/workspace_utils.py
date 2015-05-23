@@ -19,153 +19,218 @@ from vercereg.models import LiteralSig
 from vercereg.models import PEImplementation
 from vercereg.models import PESig
 from vercereg.models import Workspace
-from vercereg.models import RegistryUserGroup
 from vercereg.models import Connection
 
-from django.contrib.auth.models import Group
-from django.contrib.auth.models import User
-
 from django.utils import timezone
+
+import serializers
 
 # from django.db import transaction
 
 
 class WorkspaceCloner:
-  '''Implements a deep cloner for vercereg workspaces.'''
+    
+    # The package suffix for copying over dependent entities, such as 
+    # implementations, when the `target_name` parameter for the parent entity 
+    # has been specified.
+    COPY_IMPL_PCKG_SUFFIX = 'implementations'
 
-  def __init__(self, original_workspace, name, user):
-    self.original_workspace = original_workspace
-    self.target_workspace = None
-    self.name = name
-    self.user = user
-    self.dic = {} # dictionary fromWorkspaceItem:toWorkspaceItem, when cloned
+    """Implements a deep cloner for vercereg workspaces."""
 
-  def clone_pe(self, pe):
-    if pe in self.dic: return self.dic[pe]
-    ret = PESig()
-    ret.description = pe.description
-    ret.kind = pe.kind
-    ret.workspace = self.target_workspace
-    ret.pckg = pe.pckg
-    ret.name = pe.name
-    ret.creation_date = timezone.now() # Update the creation date/time;
-    ret.user = self.user
-    ret.save() # Initial save
-    for c in pe.connections.all():
-      newconn = Connection()
-      newconn.kind = c.kind
-      newconn.name = c.name
-      newconn.s_type = c.s_type
-      newconn.d_type = c.d_type
-      newconn.comment = c.comment
-      newconn.is_array = c.is_array
-      newconn.modifiers = c.modifiers
-      newconn.pesig = ret
-      newconn.save()
-    for p in pe.peimpls.all():
-      newp = self.clone_peimpl(p, ret) # foreign key doesn't need to be updated here
+    def __init__(self,
+                 original_workspace,
+                 name,
+                 user,
+                 target_workspace=None,
+                 context=None):
+        self.original_workspace = original_workspace
+        self.target_workspace = target_workspace
+        self.name = name
+        self.user = user
+        self.context = context
+        # dictionary fromWorkspaceItem:toWorkspaceItem, when cloned
+        self.dic = {}
 
-    # ret.save() # Update FIXME: Probably not needed...
-    self.dic[pe] = ret
-    return ret
+    def clone_pe(self, pe, target_pckg=None, target_name=None):
+        if pe in self.dic:
+            return self.dic[pe]
+        
+        ser = serializers.PESigSerializer(pe,
+                                          context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        
+        ret = PESig()
+        ret.description = pe.description
+        ret.kind = pe.kind
+        ret.workspace = self.target_workspace
+        ret.pckg = target_pckg or pe.pckg
+        ret.name = target_name or pe.name
+        ret.creation_date = timezone.now()  # Update the creation date/time;
+        ret.user = self.user
+        ret.clone_of = url
+        ret.clone_of_ser = textdat
+        
+        ret.save()  # Initial save
+        for c in pe.connections.all():
+            newconn = Connection()
+            newconn.kind = c.kind
+            newconn.name = c.name
+            newconn.s_type = c.s_type
+            newconn.d_type = c.d_type
+            newconn.comment = c.comment
+            newconn.is_array = c.is_array
+            newconn.modifiers = c.modifiers
+            newconn.pesig = ret
+            
+            newconn.save()
+        for p in pe.peimpls.all():
+            self.clone_peimpl(p, ret,
+                              target_pckg=ret.pckg + '.' +\
+                              WorkspaceCloner.COPY_IMPL_PCKG_SUFFIX)
+        self.dic[pe] = ret
+        return ret
 
-  def clone_peimpl(self, peimpl, newparent=None):
-    if peimpl in self.dic: return self.dic[peimpl]
-    ret = PEImplementation()
-    ret.workspace = self.target_workspace
-    ret.pckg = peimpl.pckg
-    ret.name = peimpl.name
-    ret.creation_date = timezone.now()
-    ret.description = peimpl.description
-    ret.code = peimpl.code
-    ret.user = self.user
-    if newparent: ret.parent_sig = newparent
+    def clone_peimpl(self, peimpl, newparent=None,
+                     target_pckg=None, target_name=None):
+        if peimpl in self.dic:
+            return self.dic[peimpl]
+        ser = serializers.PEImplementationSerializer(peimpl,
+                                                     context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        
+        ret = PEImplementation()
+        ret.workspace = self.target_workspace
+        ret.pckg = target_pckg or peimpl.pckg
+        ret.name = target_name or peimpl.name
+        ret.creation_date = timezone.now()
+        ret.description = peimpl.description
+        ret.code = peimpl.code
+        ret.user = self.user
+        if newparent:
+            ret.parent_sig = newparent
+        ret.clone_of = url
+        ret.clone_of_ser = textdat
+        
+        ret.save()
+        self.dic[peimpl] = ret
+        return ret
 
-    ret.save()
-    self.dic[peimpl] = ret
-    return ret
+    def clone_literal(self, lit,
+                      target_pckg=None, target_name=None):
+        if lit in self.dic:
+            return self.dic[lit]
+        ser = serializers.LiteralSigSerializer(lit,
+                                               context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        ret = LiteralSig()
+        ret.workspace = self.target_workspace
+        ret.pckg = target_pckg or lit.pckg
+        ret.name = target_name or lit.name
+        ret.creation_date = timezone.now()
+        ret.description = lit.description
+        ret.value = lit.value
+        ret.user = self.user
+        ret.clone_of = url
+        ret.clone_of_ser = textdat
+        
+        ret.save()
+        self.dic[lit] = ret
+        return ret
 
-  def clone_literal(self, lit):
-    if lit in self.dic: return self.dic[lit]
-    ret = LiteralSig()
-    ret.workspace = self.target_workspace
-    ret.pckg = lit.pckg
-    ret.name = lit.name
-    ret.creation_date = timezone.now()
-    ret.description = lit.description
-    ret.value = lit.value
-    ret.user = self.user
+    def clone_function(self, fun,
+                       target_pckg=None, target_name=None):
+        if fun in self.dic:
+            return self.dic[fun]
+        
+        ser = serializers.FunctionSigSerializer(fun,
+                                                context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        
+        ret = FunctionSig()
+        ret.workspace = self.target_workspace
+        ret.pckg = target_pckg or fun.pckg
+        ret.name = target_name or fun.name
+        ret.creation_date = timezone.now()
+        ret.description = fun.description
+        ret.return_type = fun.return_type
+        ret.user = self.user
+        ret.clone_of = url
+        ret.clone_of_ser = textdat
 
-    ret.save()
-    self.dic[lit] = ret
-    return ret
+        ret.save()
+        for param in fun.parameters.all():
+            newparam = FunctionParameter()
+            newparam.param_name = param.param_name
+            newparam.param_type = param.param_type
+            newparam.parent_function = ret
+            newparam.save()
+        for fnimpl in fun.fnimpls.all():
+            self.clone_fnimpl(fnimpl, ret, 
+                              target_pckg=ret.pckg + '.' +\
+                              WorkspaceCloner.COPY_IMPL_PCKG_SUFFIX)
 
-  def clone_function(self, fun):
-    if fun in self.dic: return self.dic[fun]
-    ret = FunctionSig()
-    ret.workspace = self.target_workspace
-    ret.pckg = fun.pckg
-    ret.name = fun.name
-    ret.creation_date = timezone.now()
-    ret.description = fun.description
-    ret.return_type = fun.return_type
-    ret.user = self.user
+        # ret.save()
+        self.dic[fun] = ret
+        return ret
 
-    ret.save()
-    for param in fun.parameters.all():
-      newparam = FunctionParameter()
-      newparam.param_name = param.param_name
-      newparam.param_type = param.param_type
-      newparam.parent_function = ret
-      newparam.save()
-    for fnimpl in fun.fnimpls.all():
-      newf = self.clone_fnimpl(fnimpl, ret)
+    def clone_fnimpl(self, fnimpl, newparent=None,
+                     target_pckg=None, target_name=None):
+        if fnimpl in self.dic:
+            return self.dic[fnimpl]
+        
+        ser = serializers.FnImplementationSerializer(fnimpl,
+                                                     context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        
+        ret = FnImplementation()
+        ret.workspace = self.target_workspace
+        ret.pckg = target_pckg or fnimpl.pckg
+        ret.name = target_name or fnimpl.name
+        ret.creation_date = timezone.now()
+        ret.description = fnimpl.description
+        ret.code = fnimpl.code
+        if newparent:
+            ret.parent_sig = newparent
+        ret.user = self.user
+        ret.clone_of = url
+        ret.clone_of_ser = textdat
 
-    #ret.save()
-    self.dic[fun] = ret
-    return ret
+        ret.save()
+        self.dic[fnimpl] = ret
+        return ret
 
-  def clone_fnimpl(self, fnimpl, newparent=None):
-    if fnimpl in self.dic: return self.dic[fnimpl]
-    ret = FnImplementation()
-    ret.workspace = self.target_workspace
-    ret.pckg = fnimpl.pckg
-    ret.name = fnimpl.name
-    ret.creation_date = timezone.now()
-    ret.description = fnimpl.description
-    ret.code = fnimpl.code
-    if newparent: ret.parent_sig = newparent
-    ret.user = self.user
+    def clone(self):
+        """Deep clone the original workspace into the target and return it."""
+        # print 'Cloning ' + str(self.original_workspace)
 
-    ret.save()
-    self.dic[fnimpl] = ret
-    return ret
+        ser = serializers.WorkspaceSerializer(self.original_workspace,
+                                              context=self.context)
+        url = ser.data['url']
+        textdat = str(ser.data)
+        self.target_workspace = Workspace(
+            name=self.name,
+            owner=self.user,
+            creation_date=timezone.now(),
+            clone_of=url,
+            clone_of_ser=textdat,
+            description=self.original_workspace.description)
 
+        self.target_workspace.save()
 
-  def clone(self):
-    '''Deep clone the original workspace into the target and return it.'''
-    # print 'Cloning ' + str(self.original_workspace)
+        for pe in self.original_workspace.get_pesigs():
+            self.dic[pe] = self.clone_pe(pe)
+        for lit in self.original_workspace.get_literalsigs():
+            self.dic[lit] = self.clone_literal(lit)
+        for fn in self.original_workspace.get_fnsigs():
+            self.dic[fn] = self.clone_function(fn)
+        for peimpl in self.original_workspace.get_peimplementations():
+            self.dic[peimpl] = self.clone_peimpl(peimpl)
+        for fnimpl in self.original_workspace.get_fnimplementations():
+            self.dic[fnimpl] = self.clone_fnimpl(fnimpl)
 
-    self.target_workspace = Workspace(
-      name=self.name,
-      owner=self.user,
-      creation_date=timezone.now(),
-      clone_of=self.original_workspace,
-      description=self.original_workspace.description)
-    self.target_workspace.save()
-
-    for pe in self.original_workspace.get_pesigs():
-      self.dic[pe] = self.clone_pe(pe)
-    for lit in self.original_workspace.get_literalsigs():
-      self.dic[lit] = self.clone_literal(lit)
-    for fn in self.original_workspace.get_fnsigs():
-      self.dic[fn] = self.clone_function(fn)
-    for peimpl in self.original_workspace.get_peimplementations():
-      self.dic[peimpl] = self.clone_peimpl(peimpl)
-    for fnimpl in self.original_workspace.get_fnimplementations():
-      self.dic[fnimpl] = self.clone_fnimpl(fnimpl)
-
-    # TODO: Give self.user all permissions on the new workspace
-
-
-    return self.target_workspace
+        return self.target_workspace
