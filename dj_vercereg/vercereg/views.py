@@ -670,8 +670,14 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                 self.request.user,
                 obj)
             assign_perm('vercereg.view_meta_workspace', self.request.user, obj)
+            
+            # All workspaces should be readable and clonable for now
+            g = Group.objects.get(name='default_read_all_group')
+            assign_perm('view_meta_workspace', g, obj)
+            assign_perm('view_contents_workspace', g, obj)
+            
             # TODO: Add change/delete workspace - don't know what's the correct
-            # permissions to set / Internet
+            # permissions to set - look it up
 
 
 class UserViewSet(viewsets.ModelViewSet):
