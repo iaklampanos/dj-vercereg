@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block extra_head_content %}
+
+<script>
+
+   
+ $(document).ready(function() {	 
+	 $( ".wspc_lnk" ).click(function(){
+		 console.log(this);
+		 console.log($(this).attr('value'));
+		 $(document).load($(this).attr('value'));
+	 });
+	 
+	 $(document).tooltip(
+		 {
+			 track: true,
+	     }
+	 );
+	 
+     {% if workspace %}
+	     var selectedWspc = {{workspace.id}};
+		 $( 'li#' + selectedWspc ).children().addClass('menu_item_selected');
+
+		 $.ajax({
+			 url: "{% url 'ui:is_workspace_faved' workspace.id %}",
+			 cache: false
+		 })
+		 .done(function(data){
+			 if (data['faved']) {
+				 $( "#btFav" ).prop('value', '★');
+				 $( "#btFav" ).prop('title', 'Click to remove from favourites');
+			 }
+			 else {
+				 $( "#btFav" ).prop('value', '☆');
+				 $( "#btFav" ).prop('title', 'Click to add to favourites');
+			 }
+		 });
+
+     {% endif %}
+	 
+	 
+	 $( "#btFav" ).click(function(event){
+		 event.preventDefault();
+		 console.log("{{workspace.id}}")
+		 $.ajax({
+		 	url: "{% url 'ui:toggle_workspace_fav' workspace.id|default:0 %}",
+			cache: false
+		 })
+		.done(function(data){
+				 console.log('success: ' + data["f"]);
+				 if (data["f"]) { 
+					 $( "#btFav" ).prop('value', '★');
+					 $( "#btFav" ).prop('title', 'Click to remove from favourites');
+				 } 
+				 else {
+				 	$( "#btFav" ).prop('value', '☆');
+					$( "#btFav" ).prop('title', 'Click to add to favourites');
+				 }
+			 })
+		.fail(function(data){
+				 console.log('failure:' + data["f"]);
+			 })
+	 });
+ });
+</script>
+  
+{%endblock%}
+
+{% block banner %}
+	<div class="bannercontent">
+		Welcome {{request.user.username}} - 
+		<a href="{% url 'ui:logout' %}">Log out</a>
+	</div>
+{% endblock %}
+
+{% block content %}
+{% if workspace %}
+<h2>
+	<table class="wspc_header">
+		<tr>
+			<td class="wspc_title">
+		<span class="title" id="wspc_title">{{workspace.name}}</span> by 
+		<span class="title" id="wspc_owner">{{workspace.owner}}</span>
+			</td>
+			<td>
+				<span id="fav_icon" class="star">
+					{# {% if workspace in fav_workspaces %} #}
+					{# ★ #}
+					{# {% else %} #}
+					{# ☆ #}
+					{# {% endif %} #}
+					<form action="{% url 'ui:toggle_workspace_fav' workspace.id %}" method="get">
+						<input type="submit" id="btFav" value=""  title="Fav/unfav"/>
+					</form>
+				</span>
+			</td>
+	</table>
+</h2>
+<hr />
+<form id="wspc-details">
+<table class="wspc_details">
+	<tr>
+		<th>Name</th>
+		<td><input id="wspc_name" name="wspc_name" size="42" title="The name of the workspace" readonly value="{{workspace.name}}"/></td> 
+	</tr>
+	<tr>
+		<th>Owner</th>
+		<td><input id="wspc_owner" name="wspc_owner" size="42" value="{{workspace.owner}}" readonly /></td>
+	</tr>
+	<tr>
+		<th>Description</th>
+		<td>
+			<textarea id="wspc_descr" name="wspc_descr" 
+			 cols="41" rows="5" readonly/>
+{{workspace.description}}
+			</textarea>
+		</td>
+	</tr>	
+</table>
+</form>
+
+{% endif %}
+
+{% endblock %}
+
+
+{% block menu %}
+<ul class="menu">
+	{% if own_workspaces %}
+		<li id="own_lbl" class="ui-state-disabled">My Workspaces</li>
+		{% for w in own_workspaces %}
+			<li id="{{w.id}}">
+				<a class="wspc_link" href="{% url 'ui:workspace_detail' w.id %}">{{w.name}} - {{w.owner}} </a>
+			</li>
+		{% endfor %}
+	{% endif %}
+	
+	{% if fav_workspaces %}
+		<li class="ui-state-disabled"><hr/></li>
+		<li id="fav_lbl" class="ui-state-disabled">Favourites</li>
+		{% for f in fav_workspaces %}
+			<li id="{{f.id}}">
+				<a class="wspc_link" href="{% url 'ui:workspace_detail' f.id %}">{{f.name}} - {{f.owner}} </a>
+			</li>
+		{% endfor%}
+	{% endif %}
+</ul>
+{% endblock %}
+
+{% block actions %}
+<a href="#" id="fav_wspc_link">Fav</a> | 
+<a href="#" id="edit_wspc_link">Edit</a>
+{% endblock %}

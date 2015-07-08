@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block extra_head_content %}
+
+<script>
+var toolbox_dragcheck = false; 
+
+	function place_items_to_toolbox(data) { 
+		for (var i in data.pes) {
+			var pe = data.pes[i];
+			var url = null;
+			var fqn = null;
+			var impls = null;
+			for (var k in pe) {
+				url = k;
+				fqn = pe[k];
+			}
+			var toks = fqn.split('.');
+			var pename = toks[toks.length-1];
+			var pepckg = fqn.substring(0, fqn.lastIndexOf('.'));
+			var divToAdd = '<div class="toolbox_item" data-peurl="' + url + 
+				'" data-pefqn="'+ fqn + '">'+
+				'<span class="toolbox_item_pckg">'  + pepckg + '</span> <br/>' +
+			    '<span class="toolbox_item_name">' + pename + '</span> </div>';
+			$('div#menu').append(divToAdd);
+		}
+	}
+	
+	function populate_toolbox() {
+		 $.ajax({
+		 	//dataType: "json",
+		 	url: "http://localhost:8000/workspaces/{{workspace.id}}/?ls",
+			cache: false
+		 })
+		.done(function(data) {
+			 place_items_to_toolbox(data);
+			 set_up_drag_drop();
+			 $('.toolbox_item').mouseup(update_properties);
+		 })
+		.fail(function(data) {
+			 console.log('failure:' + data);
+		})
+	}	
+
+	function init_flow_divs() { 
+		var numDivs = 1;
+		for (var i=0; i<numDivs; i++) {
+			var divToAdd = '<div class="square-box"> <div class="square-content"><div><span> Drag a PE here </span></div></div></div>';
+			var arrow = '<div class="flow_box_arrow" id="">→</div>'
+			$('div#main').append(divToAdd);
+			if (i < numDivs-1) { 
+				$('div#main').append(arrow);
+			}
+		}
+	}
+	
+	function box_hover_action() { 
+		// $(this).css('border-color', '#2233DD');
+		var lnk = $(this).find('.rm-box-link-hidden');
+		lnk.addClass('rm-box-link');
+		lnk.removeClass('rm-box-link-hidden');
+	}
+	function box_hover_out_action() { 
+		// $(this).css('border-color', '#000000');
+		var lnk = $(this).find('.rm-box-link');
+		lnk.addClass('rm-box-link-hidden');
+		lnk.removeClass('rm-box-link');
+	}
+	
+	function rm_box_action(event) {
+		event.stopPropagation();
+		// console.log(event);
+		var parent_box = $(this).parents('.square-box');
+		var conn = $(parent_box).next();
+		$(conn).hide(300, function() {$(this).remove();});
+		$(parent_box).hide(300, function() {$(this).remove();});
+	}
+	
+	function box_drop_action(event, ui)  {
+		// console.log(ui.draggable[0]);
+		var originalDiv = ui.draggable[0];
+		var children =  $(originalDiv).children();
+		var pckg = $(children[0]).text();
+		var nm = $(children[2]).text();
+		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
+			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
+						'<span class="square-workflow-text-name">' + nm + '</span>' +
+		               '<br/><br/><a href="#" class="rm-box-link-hidden">' +
+					   'Remove</a> </span></div></div>';
+		var dv = $.parseHTML(divToAdd);
+		$(this).click(update_properties);
+		$(this).html(dv);
+		$(this).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
+		$(this).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
+
+		var lnk = $(this).find('.rm-box-link-hidden')
+		$(lnk).click(rm_box_action);
+		$(this).hover(box_hover_action, box_hover_out_action);
+				
+		if (!$(this).hasClass('square-box-filled')) {
+			$(this).addClass('square-box-filled');
+			var arrowDiv = '<div class="flow_box_arrow">_</div>' 
+			var boxDiv = '<div class="ui-droppable square-box"> <div class="square-content"><div><span> Drag a PE here </span></div></div></div>';
+			$(this).parent().append(arrowDiv);
+			var dv = $.parseHTML(boxDiv);
+			$(dv).droppable({drop: box_drop_action });
+			$(this).parent().append(dv);
+		}
+	}
+	
+	function update_properties_connections(urls) { 
+		// $('div#properties-connections').html('');
+		var toret = "<hr/><b>Connections:</b><br/>";
+		for (var i in urls) {
+			$.ajax({
+				url: urls[i],
+				cache: true
+			})
+			.done(function(data){
+				// console.log('%' + data.kind + '%');
+				if (data.kind == "IN") {
+					$('div#properties-connections-in').append
+					('• <i>' + data.name + '</i>: ' + data.comment + '<br/>');
+				} 
+				else if (data.kind == "OUT") {
+					$('div#properties-connections-out').append
+					('• <i>' + data.name + '</i>: ' + data.comment + '<br/>');
+				}
+			})
+			.fail(function(data){
+				console.log(data);
+			})
+		}
+	}
+	
+	
+	function init_properties_divs() { 
+		var s = '<div id="properties-title" style="background-color:#bbccdd; text-align:center;"></div>	<div id="properties-description"></div>	<div id="properties-connections"> <div id="properties-connections-in"><b>Input Connections:</b><br/> </div> <div id="properties-connections-out"> <hr/><b>Output Connections:</b><br/> </div> </div>';
+		$('div#properties').html(s);
+	}
+	
+	var update_properties = function(event) {
+		init_properties_divs();
+		var peurl = $(this).attr('data-peurl');
+		// console.log(peurl);
+		$.ajax({
+			url: peurl,
+			cache: true
+		})
+		.done(function(data){
+			$('div#properties-title').html('<b>' + data.pckg + '.' + data.name + '</b><hr/>')
+			$('div#properties-description').html('<b>Description: </b> ' + data.description + '<br/><hr/>');
+			update_properties_connections(data.connections);
+		})
+		.fail(function(data){
+			console.log('failure:' + data);
+		})
+	}
+
+	/**
+	 * Setup drag and drop for PEs, from the toolbox to the workflow.
+	 */
+	function set_up_drag_drop() {
+		// console.log('Setting drag and drop');
+		$(".toolbox_item").draggable({
+			cursor: "move",
+			stack: ".toolbox_item",
+			appendTo: 'body',
+			helper: 'clone',
+			// containment: 'div#wrapper',
+			revert: "invalid",
+			drag: function() {
+				toolbox_dragcheck=true;
+			},
+			stop: function() {
+				toolbox_dragcheck = false;
+			}});
+		
+		$('div.square-box').droppable({
+			drop: box_drop_action
+		});
+	}
+
+	var IMPL_URLS = {};
+	var IMPLS = {};
+
+	// Return the 1st implementation of the given PE.
+	// Assume there is at least one implementation associated with each PE.
+	function retrieve_impl_urls(pe_urls) {
+		var deferred = [];
+		IMPL_URLS = {};
+		for (var i = 0; i < pe_urls.length; i++) {
+			var u = pe_urls[i];
+			// console.log(u); // OK!
+			deferred.push(
+				$.ajax({
+					url: u,
+					cache: false
+				})
+				.done(function(data){
+					// console.log('DEFERRED DONE: ' + data.url + ' > '  + data.peimpls[0]);
+					IMPL_URLS[data.url] = data.peimpls[0];
+				})
+				.fail(function(data){
+					console.error('failure:' + data);
+				})
+			);
+		}
+		// console.log(deferred);
+		return deferred;
+	}
+	
+	function retrieve_impls() {
+		var deferred = [];
+		IMPLS = {};
+		$.each(IMPL_URLS, function(key, value) { 
+			// console.log('retrieve impls: ' + key + ', ' + value);
+			deferred.push(
+				$.ajax({
+					url: value,
+					cache: false
+				})
+				.done(function(data) {
+					IMPLS[key] = data.code;
+				})
+				.fail(function(data) {
+					console.error('failure:' + data);
+				})
+			);
+		});
+		return deferred;
+	}
+	
+	function extract_class_from_impl(impl_str) {
+		if (impl_str == undefined) { 
+			return null;
+		}
+		var lines = impl_str.split('\n');
+		for (var i = 0; i < lines.length; i++) { 
+			var curr_line = lines[i].trim();
+			if (curr_line.slice(0, 5) == 'class') { 
+				var par_index = curr_line.indexOf('(');
+				var class_name = curr_line.slice(6, par_index).trim();
+				// console.log('"' + class_name + '"');
+				return class_name;
+			}
+		}
+		return null;
+	}
+	
+	function extract_connections_from_impl(impl_str) { 
+		var conns = {'in': [], 'out': []};
+		if (impl_str == undefined) { 
+			return null;
+		}
+		var lines = impl_str.split('\n');
+		for (var i = 0; i < lines.length; i++) { 
+			var curr_line = lines[i].trim();
+			if (curr_line.slice(0, 6) == ':input') {
+				// + 1 is to compensate for substr(1)
+				var indofseccol = curr_line.substr(1).indexOf(':') + 1;
+				conns.in.push(curr_line.slice(7, indofseccol));
+			} 
+			else if (curr_line.slice(0, 7) == ':output') {
+				// + 1 is to compensate for substr(1)
+				var indofseccol = curr_line.substr(1).indexOf(':') + 1;
+				conns.out.push(curr_line.slice(8, indofseccol));				
+			}
+		}
+		return JSON.stringify(conns);
+	}
+	
+	function generate_code_action() { 
+		// get unique PEs
+		var uniq_pes = {};
+		$('.square-box-filled').each(function(index) { 
+			var url = $(this).attr('data-peurl');
+			var fqn = $(this).attr('data-pefqn');
+			uniq_pes[url] = fqn;
+		});
+		
+		// extract implementation URLs from PE specs:
+		var deferred = retrieve_impl_urls(Object.keys(uniq_pes));
+		$.when.apply($, deferred).done(function() {			
+			// extract the actual implementations based on IMPL_URLS: 
+			var deferred2 = retrieve_impls();
+			$.when.apply($, deferred2).done(function() {
+				
+				var imps = {};
+				var inits = [];
+				var connects = [];
+				var prev_box = null;
+				var prev_var = null;
+				var abort_code = false;
+				var errors = ''
+				
+				$('.square-box-filled').each(function(index) {
+					var box = this;
+					var url = $(this).attr('data-peurl');
+					$.each(IMPLS, function(key, value) {
+						// console.log(url + ' ?= '+ key);
+						if (url.trim() == key.trim()) {
+							$(box).attr('data-peimpl', value);
+							$(box).attr('data-peimpl-class', extract_class_from_impl(value));
+							$(box).attr('data-connections', extract_connections_from_impl(value));
+						}
+					});
+					
+					// deal with the code
+					imps['from ' + $(box).attr('data-pefqn') + ' import ' + $(box).attr('data-peimpl-class')] = true;
+					
+					if (! $(box).attr('data-peimpl-class')) {
+						errors += $(box).attr('data-pefqn') + ' does not have an implementation.\n';
+						abort_code = true;
+						return;
+					}
+					var curr_var = $(box).attr('data-peimpl-class').toLowerCase() + '_' + index;
+					
+					inits.push(curr_var + ' = ' + $(box).attr('data-peimpl-class') + '()');
+					if (prev_box != null) { 
+						connects.push('graph.connect(' + prev_var + ', ' + JSON.parse($(prev_box).attr('data-connections')).out[0] + ',' + curr_var + ', ' + JSON.parse($(prev_box).attr('data-connections')).in[0] + ')')
+					}
+					
+					// keep pointers for next loop
+					prev_box = box;
+					prev_var = curr_var;
+				});
+				
+				// generate the code
+				if (inits.length == 0) { 
+					errors += 'Please add a PE to the workflow first.\n';
+				}
+				if (abort_code || inits.length == 0)  {
+					// alert(errors);
+					$('#errors').html(errors);
+					$('#errors').dialog()
+					return;
+				}	
+				var code = 'from dispel4py.workflow_graph import WorkflowGraph\nimport dispel4py.registry.registry as r\n';
+				for (var imp in imps) { 
+					code += imp + '\n';
+				}
+				code += '\n';
+				
+				for (var i = 0; i < inits.length; i++) { 
+					code += inits[i] + '\n'
+				}
+				
+				code += '\n';
+				code += 'graph = WorkflowGraph()'
+				code += '\n';
+				
+				for (var i = 0; i < connects.length; i++) { 
+					code += connects[i] + '\n'
+				}
+				code += '\n'
+				
+				console.log(code);
+				$('#code').html($.parseHTML(code));
+				$('#code').dialog();
+				
+			});
+		});
+	}
+
+$(document).ready(function(){
+	var $loading = $('#loading').hide();
+	$(document)
+	.ajaxStart(function () {
+	    $loading.show();
+	  })
+	  .ajaxStop(function () {
+	    $loading.hide();
+	  });
+	  $(document).tooltip({ track: true});
+	  $('a#help_link').click(function(event){
+		  event.preventDefault();
+		  $('#help').dialog();
+	  });
+	  $('a#generate_code').click(function(event) {
+		  event.preventDefault();
+		  generate_code_action();
+	  });
+	$('#menu').html('<div style="text-align:center; font-weight:bold">Toolbox <hr/></div>');
+	populate_toolbox();
+	init_flow_divs();
+});
+
+</script>
+  
+{%endblock%}
+
+{% block banner %}
+	<div class="bannercontent">
+		Welcome {{request.user.username}} - 
+		<a href="{% url 'ui:logout' %}">Log out</a>
+	</div>
+{% endblock %}
+
+
+{% block content %}
+
+<div id="help" title="Help" style="font-size:0.9em; font-family:'Arial'">
+	<p>Drag and drop PEs from the toolbox on the left to form a simple workflow.</p>
+	<p>Add and remove PEs to customise your workflow. </p>
+	<p>Click on an element to view further details. </p>
+	<p>Click on the <em>Generate Code</em> link below to have your dispel4py code generated based on your graph.</p>
+</div>
+
+<div id="errors" title="Error!" style="font-size:0.9em; font-family:'Arial'">
+</div>
+
+<div id="code" title="dispel4py Code" style="font-size:0.9em;">
+</div>
+
+<div id="properties">
+	<div id="properties-title" style="background-color:#bbccdd; text-align:center;"></div>
+	<div id="properties-description"></div>
+	<div id="properties-connections">
+		<div id="properties-connections-in"></div>
+		<div id="properties-connections-out"></div>
+	</div>
+</div>
+
+
+{% endblock %}
+
+{% block actions %}
+<a href="#" id="generate_code">Generate Code</a> 
+| <a href="#" id="help_link">Help</a>
+<div id="loading">
+	<img src="{% static "ui/images/ajax-loading.gif" %}" style="height:20px; width:20px;"/>
+</div>
+
+{% endblock %}
+
+
+{% block menu %}
+{% endblock %}

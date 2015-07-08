@@ -519,51 +519,51 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             if kind_to_show:
                 if kind_to_show == 'pes':
                     dataret['pes'] = [{get_base_rest_uri(request) + 'pes/' +
-                                       str(x.id): x.pckg + '.' + x.name}
+                                       str(x.id) + '/': x.pckg + '.' + x.name}
                                       for x in pes]
                 elif kind_to_show == 'functions':
                     dataret['functions'] = [{get_base_rest_uri(request) +
                                              'functions/' +
-                                             str(x.id): x.pckg + '.' + x.name}
+                                             str(x.id) + '/': x.pckg + '.' + x.name}
                                             for x in functions]
                 elif kind_to_show == 'literals':
                     dataret['literals'] = [{get_base_rest_uri(request) +
                                             'literals/' +
-                                            str(x.id): x.pckg +
+                                            str(x.id) + '/': x.pckg +
                                             '.' + x.name}
                                            for x in literals]
                 elif kind_to_show == 'peimpls':
                     dataret['peimpls'] = [{get_base_rest_uri(request) +
                                            'peimpls/' +
-                                           str(x.id): x.pckg +
+                                           str(x.id) + '/': x.pckg +
                                            '.' + x.name}
                                           for x in peimpls]
                 elif kind_to_show == 'fnimpls':
                     dataret['fnimpls'] = [{get_base_rest_uri(request) +
                                            'fnimpls/' +
-                                           str(x.id): x.pckg +
+                                           str(x.id) + '/': x.pckg +
                                            '.' + x.name}
                                           for x in fnimpls]
                 elif kind_to_show == 'packages':
                     dataret['packages'] = packages
             else:
                 dataret['pes'] = [{get_base_rest_uri(request) + 'pes/' +
-                                   str(x.id): x.pckg + '.' + x.name}
+                                   str(x.id) + '/': x.pckg + '.' + x.name}
                                   for x in pes]
                 dataret['functions'] = [{get_base_rest_uri(request) +
-                                         'functions/' + str(x.id): x.pckg +
+                                         'functions/' + str(x.id) + '/': x.pckg +
                                          '.' + x.name}
                                         for x in functions]
                 dataret['literals'] = [{get_base_rest_uri(request) +
-                                        'literals/' + str(x.id): x.pckg +
+                                        'literals/' + str(x.id) + '/': x.pckg +
                                         '.' + x.name}
                                        for x in literals]
                 dataret['peimpls'] = [{get_base_rest_uri(request) +
-                                       'peimpls/' + str(x.id): x.pckg +
+                                       'peimpls/' + str(x.id) + '/': x.pckg +
                                        '.' + x.name}
                                       for x in peimpls]
                 dataret['fnimpls'] = [{get_base_rest_uri(request) +
-                                       'fnimpls/' + str(x.id): x.pckg +
+                                       'fnimpls/' + str(x.id) + '/': x.pckg +
                                        '.' + x.name}
                                       for x in fnimpls]
                 dataret['packages'] = packages

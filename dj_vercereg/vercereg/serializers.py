@@ -220,35 +220,35 @@ class WorkspaceDeepSerializer(serializers.HyperlinkedModelSerializer):
         pes = obj.pesig_set.get_queryset()
         return map(lambda p: get_base_rest_uri(request) +
                    'pes/' +
-                   str(p.id), pes)
+                   str(p.id) + '/', pes)
 
     def transform_functions(self, obj, value):
         request = self.context.get('request')
         fns = obj.functionsig_set.get_queryset()
         return map(lambda p: get_base_rest_uri(request) +
                    'functions/' +
-                   str(p.id), fns)
+                   str(p.id) + '/', fns)
 
     def transform_literals(self, obj, value):
         request = self.context.get('request')
         lits = obj.literalsig_set.get_queryset()
         return map(lambda p: get_base_rest_uri(request) +
                    'literals/' +
-                   str(p.id), lits)
+                   str(p.id) + '/', lits)
 
     def transform_peimplementations(self, obj, value):
         request = self.context.get('request')
         peimpls = obj.peimplementation_set.get_queryset()
         return map(lambda p: get_base_rest_uri(request) +
                    'peimpls/' +
-                   str(p.id), peimpls)
+                   str(p.id) + '/', peimpls)
 
     def transform_fnimplementations(self, obj, value):
         request = self.context.get('request')
         fnimpls = obj.fnimplementation_set.get_queryset()
         return map(lambda p: get_base_rest_uri(request) +
                    'fnimpls/' +
-                   str(p.id), fnimpls)
+                   str(p.id) + '/', fnimpls)
 
 
 ##############################################################################

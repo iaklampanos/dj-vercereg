@@ -69,6 +69,7 @@ INSTALLED_APPS = (
     'guardian',
     'rest_framework_swagger',
     'watson',
+    'ui',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -84,8 +85,6 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'dj_vercereg.urls'
 
 WSGI_APPLICATION = 'dj_vercereg.wsgi.application'
-
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
@@ -190,6 +189,10 @@ SWAGGER_SETTINGS = {
         'title': 'VERCE dispel4py Registry',
     },
 }
+
+LOGIN_URL = '/ui/login/'
+
+STATIC_URL = '/static/'
 
 try:
   from local_settings import *

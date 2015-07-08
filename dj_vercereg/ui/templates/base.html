@@ -1,0 +1,53 @@
+<html>
+{% load staticfiles %}
+<head>
+	<link rel="stylesheet" type="text/css"
+		href="{% static "ui/jquery-ui-1.11.4/jquery-ui.css" %}" />
+    <link rel="stylesheet" type="text/css" 
+		href="{% static "ui/style.css" %}" />
+
+	<script type="text/javascript"
+		src="{% static "ui/jquery-2.1.4.js" %}">
+	</script>
+	<script type="text/javascript"
+		src="{% static "ui/jquery-ui-1.11.4/jquery-ui.js" %}"> 
+	</script>
+    
+    {% block extra_head_content %}{% endblock %}
+</head>
+<body>
+	<div id="wrapper">
+
+		<div id="logo">
+			<h1><i>dispel4py</i> Workflow Designer</h2>
+		</div>
+
+		<div id="banner">
+			{% block banner %} {% endblock%}
+		</div>
+
+		<div id="mainliquid">
+
+			<div id="main">
+				{% block content %}
+				{% endblock %}
+			</div>
+			
+			<div id="actions">
+				{% block actions %}{% endblock %}
+			</div>
+		</div>
+
+		<div id="menu">
+			
+			{% block menu %}{% endblock %}
+			
+		</div>
+
+		<div id="footer">
+	        <p><i>dispel4py</i>Registry experimental user interface</p>
+	    </div>
+	</div>
+	
+</body>
+</html>

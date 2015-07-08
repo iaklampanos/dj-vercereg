@@ -38,6 +38,7 @@ urlpatterns = patterns('',
     # url(r'^blog/', include('blog.urls')),
     
     url(r'^docs/', include('rest_framework_swagger.urls')),
+    url(r'^ui/', include('ui.urls', namespace='ui')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^', include(router.urls)),
     # url(r'^rest/$', 'api_root'),
