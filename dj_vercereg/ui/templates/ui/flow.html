@@ -319,7 +319,7 @@ var toolbox_dragcheck = false;
 					
 					inits.push(curr_var + ' = ' + $(box).attr('data-peimpl-class') + '()');
 					if (prev_box != null) { 
-						connects.push('graph.connect(' + prev_var + ', ' + JSON.parse($(prev_box).attr('data-connections')).out[0] + ',' + curr_var + ', ' + JSON.parse($(prev_box).attr('data-connections')).in[0] + ')')
+						connects.push('graph.connect(' + prev_var + ', \'' + JSON.parse($(prev_box).attr('data-connections')).out[0] + '\', ' + curr_var + ', \'' + JSON.parse($(prev_box).attr('data-connections')).in[0] + '\')')
 					}
 					
 					// keep pointers for next loop
