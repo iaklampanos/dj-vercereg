@@ -18,9 +18,23 @@
 {% block extra_head_content %}
 
 <script>
-var toolbox_dragcheck = false; 
+var toolbox_dragcheck = false;
+
+	function endsWith(str, suffix) {
+	    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+	}
+	
+	// Add ... at the end of a long name
+	function shorten_name(name, max_length) {
+		var toret = name;
+		if (name.length > max_length) {
+			toret = name.slice(0, max_length-3) + '...';
+		}
+		return toret;
+	}
 
 	function place_items_to_toolbox(data) { 
+		// Add PEs
 		for (var i in data.pes) {
 			var pe = data.pes[i];
 			var url = null;
@@ -34,9 +48,32 @@ var toolbox_dragcheck = false;
 			var pename = toks[toks.length-1];
 			var pepckg = fqn.substring(0, fqn.lastIndexOf('.'));
 			var divToAdd = '<div class="toolbox_item" data-peurl="' + url + 
-				'" data-pefqn="'+ fqn + '">'+
+				'" data-pefqn="'+ fqn + '" title="(PE) ' + fqn + '">'+
 				'<span class="toolbox_item_pckg">'  + pepckg + '</span> <br/>' +
 			    '<span class="toolbox_item_name">' + pename + '</span> </div>';
+			$('div#menu').append(divToAdd);
+		}
+		
+		// Add functions
+		for (var i in data.functions) {
+			var fn = data.functions[i];
+			var url = null;
+			var fqn = null;
+			var impls = null;
+			for (var k in fn) {
+				url = k;
+				fqn = fn[k];
+			}
+			var toks = fqn.split('.');
+			var fnname = toks[toks.length-1];
+			var fnpckg = fqn.substring(0, fqn.lastIndexOf('.'));
+			if (!endsWith(fnpckg, 'fns') && !endsWith(fnpckg, 'fns.filters')) {
+				continue;
+			}
+			var divToAdd = '<div class="toolbox_item js-function" data-fnurl="' + url + 
+				'" data-fnfqn="'+ fqn + '" title="(FN) ' + fqn + '">'+
+				'<span class="toolbox_item_pckg">'  + shorten_name(fnpckg, 25) + '</span> <br/>' +
+			    '<span class="toolbox_item_name">' + shorten_name(fnname, 22) + '</span> </div>';
 			$('div#menu').append(divToAdd);
 		}
 	}
@@ -75,6 +112,7 @@ var toolbox_dragcheck = false;
 		lnk.addClass('rm-box-link');
 		lnk.removeClass('rm-box-link-hidden');
 	}
+
 	function box_hover_out_action() { 
 		// $(this).css('border-color', '#000000');
 		var lnk = $(this).find('.rm-box-link');
@@ -87,31 +125,170 @@ var toolbox_dragcheck = false;
 		// console.log(event);
 		var parent_box = $(this).parents('.square-box');
 		var conn = $(parent_box).next();
-		$(conn).hide(300, function() {$(this).remove();});
-		$(parent_box).hide(300, function() {$(this).remove();});
+		$(conn).hide(100, function() {$(this).remove();});
+		$(parent_box).hide(100, function() {$(this).remove();});
 	}
 	
-	function box_drop_action(event, ui)  {
-		// console.log(ui.draggable[0]);
+	function arrow_box_drop_action(event, ui) { 
+		console.log('arrow_box_drop_action');
+		var targetDiv = $('div#over_temp_box');
+		var originalDiv = ui.draggable[0];
+
+		var kind = 'PE';
+		if ( $( originalDiv ).hasClass('js-function') ) {
+			kind = 'FN';
+		}
+
+		if ( kind == 'FN' ) { 
+			drop_fn(event, ui, targetDiv);
+		}
+		else if ( kind == 'PE' ) {
+			drop_pe(event, ui, targetDiv);
+		}
+		else { // shouldn't reach this point
+			return;
+		}
+		
+		$(targetDiv).click(update_properties);
+		
+		if ( kind == 'PE' ) {
+			$(targetDiv).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
+			$(targetDiv).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
+		} 
+		else if ( kind == 'FN' ) {
+			$(targetDiv).attr('data-fnurl', $(ui.draggable[0]).attr('data-fnurl'));
+			$(targetDiv).attr('data-fnfqn', $(ui.draggable[0]).attr('data-fnfqn'));
+		}
+
+		var lnk = $(targetDiv).find('.rm-box-link-hidden')
+		$(lnk).click(rm_box_action);
+		$(targetDiv).hover(box_hover_action, box_hover_out_action);
+
+		$(targetDiv).addClass('square-box-filled');
+		$('#over_temp_arrow').attr('id', '');
+		$('#over_temp_box').attr('id', '');
+		$('#over_temp_box_content').attr('id', '');
+	}
+	
+	function over_arrow_action() {
+		var next = $(this).next();
+		if (! $(next).hasClass('square-box-filled')) { return; }
+		var divToAdd = ' <div style="display:none;"  id="over_temp_box" class="square-box"> <div id="over_temp_box_content" class="square-content"><div><span> Drop to insert node here </span></div></div></div> <div style="display:none;" id="over_temp_arrow" class="flow_box_arrow" id="">_</div>';
+		$(this).after(divToAdd);
+		$('#over_temp_box').show(100);//, function() {$(this).remove()});
+		$('#over_temp_arrow').show(100);//, function() {$(this).remove()});
+		reiterate_droppables();
+	}
+	
+	function out_arrow_action() {
+		if ($(this).attr('id') != 'over_temp_box') {
+			$('#over_temp_box').hide(100, function() {$(this).remove()});
+			$('#over_temp_arrow').hide(100, function() {$(this).remove()});
+		}
+	}
+	
+	function reiterate_droppables() { 
+   		$('div.square-box').droppable({
+   			drop: box_drop_action,
+   			greedy: true
+   		});
+		
+		$('div.flow_box_arrow').droppable({
+   			drop: arrow_box_drop_action,
+			over: over_arrow_action,
+			out: out_arrow_action,
+			tolerance: 'pointer',
+   			greedy: true
+   		});
+		
+		$('div.arrow-over-wrapper').droppable({
+			drop: function(){console.log('dropped on wrapper')},
+			over: function(){console.log('left wrapper')},
+			out: $('div.arrow-over-wrapper').remove(),
+			tolerance: 'pointer',
+			greedy: true
+		});
+	}
+	
+	function drop_pe(event, ui, target) { 
+
 		var originalDiv = ui.draggable[0];
 		var children =  $(originalDiv).children();
 		var pckg = $(children[0]).text();
 		var nm = $(children[2]).text();
+		// If the element is already present in the pipeline, do nothing
+		if ( ( $(target).attr('data-pefqn') == pckg + '.' + nm ) ||
+	         ( $(target).attr('data-fnfqn') == pckg + '.' + nm ) ) {
+			return;
+		}
+		
 		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
 			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
 						'<span class="square-workflow-text-name">' + nm + '</span>' +
 		               '<br/><br/><a href="#" class="rm-box-link-hidden">' +
 					   'Remove</a> </span></div></div>';
 		var dv = $.parseHTML(divToAdd);
-		$(this).click(update_properties);
-		$(this).html(dv);
-		$(this).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
-		$(this).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
+		
+		$(target).click(update_properties);
+		$(target).html(dv);
+		$(target).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
+		$(target).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
 
-		var lnk = $(this).find('.rm-box-link-hidden')
+		var lnk = $(target).find('.rm-box-link-hidden')
 		$(lnk).click(rm_box_action);
-		$(this).hover(box_hover_action, box_hover_out_action);
-				
+		$(target).hover(box_hover_action, box_hover_out_action);
+	}
+	
+	function drop_fn(event, ui, target) {
+		var originalDiv = ui.draggable[0];
+		var children =  $(originalDiv).children();
+		var pckg = $(children[0]).text();
+		var nm = $(children[2]).text();
+		// If the element is already present in the pipeline, do nothing
+		if ( ( $(target).attr('data-pefqn') == pckg + '.' + nm ) ||
+	         ( $(target).attr('data-fnfqn') == pckg + '.' + nm ) ) {
+			return;
+		}
+		
+		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
+			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
+						'<span class="square-workflow-text-name">' + nm + '</span>' +
+		               '<br/><br/><a href="#" class="rm-box-link-hidden">' +
+					   'Remove</a> </span></div></div>';
+		var dv = $.parseHTML(divToAdd);
+		// console.log( target );
+		$(target).click(update_properties);
+		$(target).addClass('js-function');
+		$(target).html(dv);
+		$(target).attr('data-fnurl', $(ui.draggable[0]).attr('data-fnurl'));
+		$(target).attr('data-fnfqn', $(ui.draggable[0]).attr('data-fnfqn'));
+
+		var lnk = $(target).find('.rm-box-link-hidden')
+		$(lnk).click(rm_box_action);
+		$(target).hover(box_hover_action, box_hover_out_action);
+	}
+	
+	function box_drop_action(event, ui)  {
+		var kind = 'PE';
+		if ( $( '#over_temp_box' ).length ) {
+			return; 
+		}
+		
+		var originalDiv = ui.draggable[0];
+		if ( $( originalDiv ).hasClass('js-function') ) {
+			kind = 'FN'; 
+		}
+		
+		if ( kind == 'FN' ) { 
+			drop_fn(event, ui, this);
+		}
+		else if ( kind == 'PE' ) {
+			drop_pe(event, ui, this);
+		}
+		else { // shouldn't reach this point
+			return;
+		}
+		
 		if (!$(this).hasClass('square-box-filled')) {
 			$(this).addClass('square-box-filled');
 			var arrowDiv = '<div class="flow_box_arrow">_</div>' 
@@ -120,6 +297,8 @@ var toolbox_dragcheck = false;
 			var dv = $.parseHTML(boxDiv);
 			$(dv).droppable({drop: box_drop_action });
 			$(this).parent().append(dv);
+			
+			reiterate_droppables();
 		}
 	}
 	
@@ -147,17 +326,26 @@ var toolbox_dragcheck = false;
 			})
 		}
 	}
-	
-	
-	function init_properties_divs() { 
-		var s = '<div id="properties-title" style="background-color:#bbccdd; text-align:center;"></div>	<div id="properties-description"></div>	<div id="properties-connections"> <div id="properties-connections-in"><b>Input Connections:</b><br/> </div> <div id="properties-connections-out"> <hr/><b>Output Connections:</b><br/> </div> </div>';
+
+	function init_properties_divs_pe() { 
+		var s = '<div id="properties-title" ' + 
+		        'style="background-color:#bbccdd; text-align:center;">' + 
+				'</div>	' + 
+					'<div id="properties-description"></div>	' + 
+					'<div id="properties-connections"> ' + 
+						'<div id="properties-connections-in"> ' + 
+			 				'<b>Input Connections:</b><br/> ' + 
+						'</div> ' + 
+						'<div id="properties-connections-out"> ' + 
+							'<hr/><b>Output Connections:</b><br/> ' + 
+						'</div> ' + 
+					'</div>';
 		$('div#properties').html(s);
 	}
-	
-	var update_properties = function(event) {
-		init_properties_divs();
-		var peurl = $(this).attr('data-peurl');
-		// console.log(peurl);
+
+	function update_properties_pe(event, target) {
+		init_properties_divs_pe();
+		var peurl = $( target ).attr('data-peurl');
 		$.ajax({
 			url: peurl,
 			cache: true
@@ -170,6 +358,50 @@ var toolbox_dragcheck = false;
 		.fail(function(data){
 			console.log('failure:' + data);
 		})
+	}
+
+	function init_properties_divs_fn() {
+		var s = '<div id="properties-title" ' + 
+		        'style="background-color:#bbccdd; text-align:center;">' + 
+				'</div>	' + 
+					'<div id="properties-description"></div>	' + 
+					'<div id="properties-parameters"> ' + 
+						'<b>Parameters:</b><br/>' +
+					'</div>' +
+					<div id="priper" 
+					;
+		$('div#properties').html(s);
+	}
+	
+	function update_properties_fn(event) {
+		console.log('updating properties for a function');
+		init_properties_divs_fn();
+	}
+	
+	// Update the properties pane on the right-hand side of the window.
+	// This is triggered on click.
+	function update_properties(event) {
+		var target = 0;
+		if ( !$( event.target ).hasClass('toolbox_item') && 
+		     !$( event.target ).hasClass('square-box-filled') ) {
+			// set the target to the correct parent div
+			target = $( event.target ).closest('.square-box-filled')[0];
+		}
+		else {
+			target = event.target;
+		}
+		
+		var kind = 'PE';
+		if ( $( target ).hasClass('js-function') ) { 
+			kind = 'FN';
+		}
+		if ( kind == 'PE' ) { 
+			update_properties_pe(event, target);
+		}
+		else if ( kind == 'FN' ) { 
+			update_properties_fn(event, target);
+		}
+		
 	}
 
 	/**
@@ -191,9 +423,7 @@ var toolbox_dragcheck = false;
 				toolbox_dragcheck = false;
 			}});
 		
-		$('div.square-box').droppable({
-			drop: box_drop_action
-		});
+		reiterate_droppables();
 	}
 
 	var IMPL_URLS = {};
@@ -285,6 +515,7 @@ var toolbox_dragcheck = false;
 		return JSON.stringify(conns);
 	}
 	
+	// XXX The following needs re-design / re-factoring
 	function generate_code_action() { 
 		// get unique PEs
 		var uniq_pes = {};
@@ -370,7 +601,7 @@ var toolbox_dragcheck = false;
 				}
 				code += '\n'
 				
-				console.log(code);
+				// console.log(code);
 				$('#code').html($.parseHTML(code));
 				$('#code').dialog();
 				
@@ -380,6 +611,7 @@ var toolbox_dragcheck = false;
 
 $(document).ready(function(){
 	var $loading = $('#loading').hide();
+	$( document ).tooltip();
 	$(document)
 	.ajaxStart(function () {
 	    $loading.show();
