@@ -177,13 +177,13 @@ class FunctionSig(WorkspaceItem):
     A model representing a function in a workspace.
     """
     description = models.TextField(null=True, blank=True)
-    return_type = models.CharField(max_length=30)
+    return_type = models.CharField(max_length=30, null=True, blank=True)
     # return_description = models.TextField(null=True, blank=True)
 
     def _get_full_name(self):
         return '%s.%s' % (self.pckg, self.name)
     full_name = property(_get_full_name)
-
+    
     class Meta:
         verbose_name = "function"
         unique_together = ('workspace', 'pckg', 'name')
@@ -199,6 +199,11 @@ class FunctionParameter(models.Model):
     """
     param_name = models.CharField(max_length=30)
     param_type = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        default=None)
+    param_default_val = models.CharField(
         max_length=30,
         null=True,
         blank=True,

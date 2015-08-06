@@ -13,25 +13,16 @@
 # limitations under the License.
 
 from django.shortcuts import render
-from django.template import RequestContext
-from django.template import loader
 from django.http import Http404
 from django.core.exceptions import ObjectDoesNotExist
 
 from vercereg.models import Workspace
 from ui.models import FavouriteWorkspaces
 
-from django.contrib.auth.models import Group
-from django.contrib.auth.models import User
-
 from django.contrib.auth.decorators import login_required
-from dj_vercereg.settings import LOGIN_URL
-from django.contrib.auth import logout
 
 from django.http import JsonResponse
 
-
-import json
 
 @login_required
 def index(request):
@@ -43,6 +34,7 @@ def index(request):
     context = {'own_workspaces': own_workspaces,
                'fav_workspaces': fav_workspaces}
     return render(request, 'ui/index.html', context)
+
 
 @login_required
 def view_workspace(request, workspace_id):
@@ -56,12 +48,13 @@ def view_workspace(request, workspace_id):
                    'fav_workspaces': fav_workspaces,
                    'workspace': w}
         return render(request, 'ui/index.html', context)
-    except ObjectDoesNotExist as e:
+    except ObjectDoesNotExist:  # as e:
         raise Http404('Workspace ' + str(workspace_id) +
                       ' not found.')
     # except Exception as e:
     #     raise Http404('Unknown error when retrieving workspace ' +
     #                   str(workspace_id))
+
 
 @login_required
 def flow(request, workspace_id):
@@ -69,9 +62,10 @@ def flow(request, workspace_id):
         w = Workspace.objects.get(pk=workspace_id)
         context = {'workspace': w}
         return render(request, 'ui/flow.html', context)
-    except ObjectDoesNotExist as e:
+    except ObjectDoesNotExist:  # as e:
         raise Http404('Workspace ' + str(workspace_id) +
                       ' not found.')
+
 
 @login_required
 def toggle_workspace_fav(request, workspace_id):
@@ -86,12 +80,13 @@ def toggle_workspace_fav(request, workspace_id):
             # FavouriteWorkspaces(workspace=w, user=request.user).delete()
             f.delete()
             return JsonResponse({'f': None})
-    except ObjectDoesNotExist as e:
+    except ObjectDoesNotExist:  # as e:
         raise Http404('Workspace ' + str(workspace_id) +
                       ' not found.')
     # except:
     #     pass
-    
+
+
 @login_required
 def is_workspace_faved(request, workspace_id):
     try:
@@ -101,7 +96,7 @@ def is_workspace_faved(request, workspace_id):
             return JsonResponse({'faved': False})
         else:
             return JsonResponse({'faved': True})
-    except ObjectDoesNotExist as e:
+    except ObjectDoesNotExist:  # as e:
         raise Http404('Workspace ' + str(workspace_id) +
                       ' not found.')
 

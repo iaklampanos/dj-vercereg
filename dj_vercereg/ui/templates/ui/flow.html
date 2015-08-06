@@ -19,6 +19,9 @@
 
 <script>
 var toolbox_dragcheck = false;
+var dialog, form;
+var	incrementalId = 1;
+
 
 	function endsWith(str, suffix) {
 	    return str.indexOf(suffix, str.length - suffix.length) !== -1;
@@ -107,14 +110,12 @@ var toolbox_dragcheck = false;
 	}
 	
 	function box_hover_action() { 
-		// $(this).css('border-color', '#2233DD');
 		var lnk = $(this).find('.rm-box-link-hidden');
 		lnk.addClass('rm-box-link');
 		lnk.removeClass('rm-box-link-hidden');
 	}
 
 	function box_hover_out_action() { 
-		// $(this).css('border-color', '#000000');
 		var lnk = $(this).find('.rm-box-link');
 		lnk.addClass('rm-box-link-hidden');
 		lnk.removeClass('rm-box-link');
@@ -122,7 +123,6 @@ var toolbox_dragcheck = false;
 	
 	function rm_box_action(event) {
 		event.stopPropagation();
-		// console.log(event);
 		var parent_box = $(this).parents('.square-box');
 		var conn = $(parent_box).next();
 		$(conn).hide(100, function() {$(this).remove();});
@@ -217,22 +217,27 @@ var toolbox_dragcheck = false;
 		var pckg = $(children[0]).text();
 		var nm = $(children[2]).text();
 		// If the element is already present in the pipeline, do nothing
-		if ( ( $(target).attr('data-pefqn') == pckg + '.' + nm ) ||
-	         ( $(target).attr('data-fnfqn') == pckg + '.' + nm ) ) {
+		if ( ( $(target).attr('data-pefqn') == pckg + '.' + nm ) ) {
 			return;
 		}
 		
 		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
 			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
 						'<span class="square-workflow-text-name">' + nm + '</span>' +
-		               '<br/><br/><a href="#" class="rm-box-link-hidden">' +
-					   'Remove</a> </span></div></div>';
+		               '<br/> ' + 
+		               '<br/><a href="#" class="rm-box-link-hidden">' +
+					   'X</a> </span></div></div>';
 		var dv = $.parseHTML(divToAdd);
 		
 		$(target).click(update_properties);
 		$(target).html(dv);
+
+		// Remove the js-function class, if present
+		$(target).removeClass('js-function');
+
 		$(target).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
 		$(target).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
+		$(target).attr('id', 'pe-' + incrementalId++);
 
 		var lnk = $(target).find('.rm-box-link-hidden')
 		$(lnk).click(rm_box_action);
@@ -244,17 +249,19 @@ var toolbox_dragcheck = false;
 		var children =  $(originalDiv).children();
 		var pckg = $(children[0]).text();
 		var nm = $(children[2]).text();
+
 		// If the element is already present in the pipeline, do nothing
-		if ( ( $(target).attr('data-pefqn') == pckg + '.' + nm ) ||
-	         ( $(target).attr('data-fnfqn') == pckg + '.' + nm ) ) {
+		if ( ( $(target).attr('data-fnfqn') == pckg + '.' + nm ) ) {
 			return;
 		}
 		
-		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
+		var divToAdd = '<div class="square-content"> <div><span class="square-workflow-text"> ' +
 			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
 						'<span class="square-workflow-text-name">' + nm + '</span>' +
-		               '<br/><br/><a href="#" class="rm-box-link-hidden">' +
-					   'Remove</a> </span></div></div>';
+		               '<br/><br/>'+
+					   '<a href="#" class="init-btn"> Initialise </a> ' + 
+		               '<a href="#" class="rm-box-link-hidden">' +
+					   'Χ</a> </span></div></div>';
 		var dv = $.parseHTML(divToAdd);
 		// console.log( target );
 		$(target).click(update_properties);
@@ -262,10 +269,91 @@ var toolbox_dragcheck = false;
 		$(target).html(dv);
 		$(target).attr('data-fnurl', $(ui.draggable[0]).attr('data-fnurl'));
 		$(target).attr('data-fnfqn', $(ui.draggable[0]).attr('data-fnfqn'));
+		$(target).attr('id', 'fn-' + incrementalId++);
 
-		var lnk = $(target).find('.rm-box-link-hidden')
+		var lnk = $(target).find('.rm-box-link-hidden');
 		$(lnk).click(rm_box_action);
 		$(target).hover(box_hover_action, box_hover_out_action);
+
+		var initbtn = $(target).find('.init-btn');
+		$(initbtn).click(init_fn_action);
+
+		// Retrieve the properties of the function and update the appearance of the div
+		retrieve_fn_properties($(target).attr('data-fnurl'), function(data) {
+			$(target).attr('data-properties', JSON.stringify(data));
+
+			$(target).removeClass('js-fn-uninitialised');
+			$(target).removeClass('js-fn-initialised');
+			if (! hasBeenInitialised(target)) {
+				$(target).addClass('js-fn-uninitialised');
+				$(target).find('.init-btn').addClass('js-btn-not-initialised');
+			}
+			else {
+				$(target).addClass('js-fn-initialised');
+				$(target).find('.init-btn').addClass('js-btn-initialised');
+			}
+		});
+	}
+
+	/**
+	 * By checking the default parameter values, determine whether
+	 * the given pipeline_box (fn instantiation) has been initiated
+	 * properly or not. Return true if it has; false otherwise.
+	 * @param  {Element}  pipeline_box The function corresponding to
+	 * the given box in the pipeline.
+	 * @return {Boolean}              true if the function has been 
+	 * initialised (i.e. every paramenter has a value); false otherwise.
+	 */
+	function hasBeenInitialised(pipeline_box) {
+		var parameters = JSON.parse($(pipeline_box).attr('data-properties')).parameters;
+		for (var i = 0; i < parameters.length; i++) {
+			// Ignores parameters that are called 'stream'
+			if ( parameters[i][0] != 'stream' && parameters[i][2].trim() == '' ) { 
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Populate the initialisation dialogue based on the given function element
+	 * @param  {Element} fn_element the element to parameterise
+	 */
+	function populate_dialog(fn_element) {
+
+		// Get the parameters from the data-properties of the element
+		var parameters = JSON.parse( $( fn_element ).attr('data-properties') ).parameters;
+		
+		var htmlToAdd = '';
+		for ( var i = 0; i < parameters.length; i++ ) {
+			var parName = parameters[i][0];
+			// ignore parameters named 'stream'
+			if ( parName == 'stream' ) { 
+				continue;
+			}
+			var parVal = parameters[i][2].replace(/"/g, '&quot;');
+
+			var row = '<label for="' + parName + '">' + parName + '</label>';
+			row += '<input type="text" name="' + parName + '" id="' + parName + '" value="' + parVal + '" class="text ui-widget-content ui-corner-all"/>';
+			// <!-- <label for="name">Name</label>
+   //    <input type="text" name="name" id="name" value="Jane Smith" class="text ui-widget-content ui-corner-all"> -->
+   			htmlToAdd += row;
+		}
+
+		$('div#dialog-form').html(htmlToAdd);
+		$('div#dialog-form').attr('data-src-id', $(fn_element).attr('id'));
+	}
+
+	/**
+	 * Display the initialisation dialogue for the selected function.
+	 * @param  {Event} event The event that triggered the action
+	 */
+	function init_fn_action(event) {
+		event.stopPropagation();
+		// console.log('init_fn_action');
+		var parent = $(event.target).parents('.js-function')[0];
+		populate_dialog( parent );
+		dialog.dialog( "open" );
 	}
 	
 	function box_drop_action(event, ui)  {
@@ -279,6 +367,8 @@ var toolbox_dragcheck = false;
 			kind = 'FN'; 
 		}
 		
+		$(this).unbind("click");  // click events stack!
+
 		if ( kind == 'FN' ) { 
 			drop_fn(event, ui, this);
 		}
@@ -288,7 +378,7 @@ var toolbox_dragcheck = false;
 		else { // shouldn't reach this point
 			return;
 		}
-		
+
 		if (!$(this).hasClass('square-box-filled')) {
 			$(this).addClass('square-box-filled');
 			var arrowDiv = '<div class="flow_box_arrow">_</div>' 
@@ -304,6 +394,7 @@ var toolbox_dragcheck = false;
 	
 	function update_properties_connections(urls) { 
 		// $('div#properties-connections').html('');
+		// console.log('- ' + $('div#properties').html());
 		var toret = "<hr/><b>Connections:</b><br/>";
 		for (var i in urls) {
 			$.ajax({
@@ -329,7 +420,7 @@ var toolbox_dragcheck = false;
 
 	function init_properties_divs_pe() { 
 		var s = '<div id="properties-title" ' + 
-		        'style="background-color:#bbccdd; text-align:center;">' + 
+		        'style="background-color:#bbccdd; text-align:center; overflow:auto">' + 
 				'</div>	' + 
 					'<div id="properties-description"></div>	' + 
 					'<div id="properties-connections"> ' + 
@@ -350,37 +441,143 @@ var toolbox_dragcheck = false;
 			url: peurl,
 			cache: true
 		})
-		.done(function(data){
+		.done(function(data) {
 			$('div#properties-title').html('<b>' + data.pckg + '.' + data.name + '</b><hr/>')
 			$('div#properties-description').html('<b>Description: </b> ' + data.description + '<br/><hr/>');
 			update_properties_connections(data.connections);
 		})
-		.fail(function(data){
+		.fail(function(data) {
 			console.log('failure:' + data);
 		})
 	}
 
 	function init_properties_divs_fn() {
 		var s = '<div id="properties-title" ' + 
-		        'style="background-color:#bbccdd; text-align:center;">' + 
+		        'style="background-color:#bbccdd; text-align:center; overflow:auto">' + 
 				'</div>	' + 
 					'<div id="properties-description"></div>	' + 
 					'<div id="properties-parameters"> ' + 
-						'<b>Parameters:</b><br/>' +
+						'<b>Parameters:</b><br/>' +  
 					'</div>' +
-					<div id="priper" 
-					;
+				    '<div id="properties-return">' + 
+				    	'<b>Return:</b><br/>' +
+				    '</div>';
 		$('div#properties').html(s);
 	}
+
+	// extract the name, parameters and return type of the given function and return
+	// an object (JSON) with the details.
+	function retrieve_fn_properties(fnurl, callback) {
+		var ret = { pckg: '',
+				    name: '',
+				    description: '',
+				    parameters: [],
+				    rettype: {} }; 
+		$.ajax({
+			url: fnurl,
+			cache: true
+		})
+		.done(function(data) {
+			ret.pckg = data.pckg;
+			ret.name = data.name;
+			ret.rettype = data.return_type;
+			ret.description = data.description;
+
+			var param_deferred = [];
+			$.each( data.parameters, function(index, paramurl) {
+				param_deferred.push(
+					$.ajax({
+						url: paramurl,
+						cache: true
+					})
+					.done( function(data) {
+						var pname, ptype, pdefval, strtype, strdefval;
+						pname = data.param_name;
+						ptype = strtype = data.param_type;
+						pdefval = strdefval = data.param_default_val;
+						ret.parameters.push([pname, ptype, pdefval]);
+						// console.log(index);
+					})
+					.fail( function(data) {
+						console.log('failure: ' + data);
+					})
+				);
+			});
+			$.when.apply($, param_deferred).done(function() {	
+				// console.log(ret);
+				callback(ret);
+			});
+		})
+		.fail(function(data) {
+			console.log('failure: ' + data);
+		});
+		return ret;
+	}
+
+	function init_properties_divs_fn() {
+		var s = '<div id="properties-title" ' + 
+		        'style="background-color:#bbccdd; text-align:center; overflow:auto">' + 
+				'</div>	' + 
+					'<div id="properties-description"></div>' + 
+					'<div id="properties-parameters"> ' + 
+						'<hr/><b>Parameters:</b><br/>' +  
+					'</div>' +
+				    '<div id="properties-return">' + 
+				    	'<hr/><b>Return:</b><br/>' +
+				    '</div>';
+		$('div#properties').html(s);
+	}
+
+	function populate_fn_property_divs(fn_props) { 
+		$( 'div#properties-title' ).html('<b>' + 
+			fn_props.pckg + '.' + fn_props.name + 
+			'</b><hr/>');
+		$( 'div#properties-description' ).html('<b>Description:</b> ' + 
+			fn_props.description
+			);
+		$.each(fn_props.parameters, function(index, value){
+			var pname, ptype, pdef;
+			pname = value[0];
+			ptype = value[1];
+			pdef = value[2];
+			
+			if ( !ptype || ptype.trim() == '' ) { ptype = ''; }
+			if ( !pdef || pdef.trim() == '' ) { pdef = ''; }
+			
+			$( 'div#properties-parameters' ).append('• <i>' + pname + '</i>');
+			if ( ptype != '' ) {
+				$( 'div#properties-parameters' ).append(': ' + ptype);
+			}
+			if ( pdef != '' ) { 
+				$( 'div#properties-parameters' ).append(' = ' + pdef + '');
+			}
+			$( 'div#properties-parameters' ).append('<br/>');
+		});
 	
-	function update_properties_fn(event) {
-		console.log('updating properties for a function');
+		var rettype = fn_props.rettype;
+		if ( !rettype || rettype.trim() == '' ) { 
+			rettype = 'Not defined!'
+		}
+		$( 'div#properties-return').append(rettype);
+	}
+	
+	function update_properties_fn(event, target) {
+		// console.log('updating properties for a function');
 		init_properties_divs_fn();
+		var fnurl = $(target).attr('data-fnurl');
+		if ( $(target).attr('data-properties') ) { 
+			populate_fn_property_divs( JSON.parse($(target).attr('data-properties')) );
+		}
+		else {
+			retrieve_fn_properties(fnurl, populate_fn_property_divs);
+		}
 	}
 	
 	// Update the properties pane on the right-hand side of the window.
 	// This is triggered on click.
 	function update_properties(event) {
+		// console.log('update_properties');
+		$('div#properties').html('');
 		var target = 0;
 		if ( !$( event.target ).hasClass('toolbox_item') && 
 		     !$( event.target ).hasClass('square-box-filled') ) {
@@ -609,10 +806,52 @@ var toolbox_dragcheck = false;
 		});
 	}
 
+	function init_fn_dialog() {
+		console.log('Changing parameter values to a fn');
+		var inputs = $('div#dialog-form').find('input');
+		var src_id = $('div#dialog-form').attr('data-src-id');
+		var src = $('div#' + src_id);
+		var properties = JSON.parse($(src).attr('data-properties'));
+
+		for ( var i = 0; i < inputs.length; i++ ) {
+			var parName = $(inputs[i]).attr('name');
+			var parVal = $(inputs[i]).val();
+			// XXX Refactor - parameters should be a dictionary by parameter name 
+			// in order to avoid the inner loop...
+			for ( var j = 0; j < properties.parameters.length; j++ ) { 
+				var currp = properties.parameters[j];
+				if (currp[0] == parName) {
+					currp[2] = parVal;
+					break;
+				}
+			}
+			properties.parameters[parName] = parVal;
+		}
+		$(src).attr('data-properties', JSON.stringify(properties));
+		console.log('>>> ' + JSON.stringify(properties));
+
+		$(src).removeClass('js-fn-uninitialised');
+		$(src).removeClass('js-fn-initialised');
+		if (! hasBeenInitialised(src)) {
+			$(src).addClass('js-fn-uninitialised');
+			$(src).find('.init-btn').removeClass('js-btn-initialised');
+			$(src).find('.init-btn').addClass('js-btn-not-initialised');
+		}
+		else {
+			$(src).addClass('js-fn-initialised');
+			$(src).find('.init-btn').removeClass('js-btn-not-initialised');
+			$(src).find('.init-btn').addClass('js-btn-initialised');
+		}
+
+	}
+
 $(document).ready(function(){
 	var $loading = $('#loading').hide();
-	$( document ).tooltip();
-	$(document)
+	$( document ).tooltip({
+		show: {effect: "fade", duration:150},
+		fade: {effect: "fade", duration:150}
+	});
+	$( document )
 	.ajaxStart(function () {
 	    $loading.show();
 	  })
@@ -631,6 +870,35 @@ $(document).ready(function(){
 	$('#menu').html('<div style="text-align:center; font-weight:bold">Toolbox <hr/></div>');
 	populate_toolbox();
 	init_flow_divs();
+
+	
+
+	dialog = $( "#dialog-form" ).dialog({
+      autoOpen: false,
+      height: 300,
+      width: 350,
+      modal: true,
+      buttons: {
+        "OK": function(event) {
+        	console.log(event);
+        	console.log( "OK clicked" );
+        	init_fn_dialog();
+        	dialog.dialog( "close" );
+        },
+        Cancel: function() {
+          	dialog.dialog( "close" );
+        }
+      },
+      close: function() {
+        // allFields.removeClass( "ui-state-error" );
+      }
+    });
+ 
+    form = dialog.find( "form" ).on( "submit", function( event ) {
+      event.preventDefault();
+      init_fn_dialog();
+    });
+
 });
 
 </script>
@@ -646,6 +914,20 @@ $(document).ready(function(){
 
 
 {% block content %}
+
+<div id="dialog-form" title="Parameters">
+  <p class="validateTips">Please supply a valid Python value for each parameter below.</p>
+ 
+  <form>
+    <fieldset id="fieldset-params">
+      <!-- <label for="name">Name</label>
+      <input type="text" name="name" id="name" value="Jane Smith" class="text ui-widget-content ui-corner-all"> -->
+
+      <!-- Allow form submission with keyboard without duplicating the dialog button -->
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+    </fieldset>
+  </form>
+</div>
 
 <div id="help" title="Help" style="font-size:0.9em; font-family:'Arial'">
 	<p>Drag and drop PEs from the toolbox on the left to form a simple workflow.</p>

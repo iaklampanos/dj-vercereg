@@ -1,48 +1,3 @@
-/*html, body, div, span, applet, object, iframe,
-    h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-    a, abbr, acronym, address, big, cite, code,
-    del, dfn, em, img, ins, kbd, q, s, samp,
-    small, strike, strong, sub, sup, tt, var,
-    b, u, i, center,
-    dl, dt, dd, ol, ul, li,
-    fieldset, form, label, legend,
-    table, caption, tbody, tfoot, thead, tr, th, td,
-    article, aside, canvas, details, embed,
-    figure, figcaption, footer, header, hgroup,
-    menu, nav, output, ruby, section, summary,
-    time, mark, audio, video {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    font-size: 100%;
-    font: inherit;
-    vertical-align: baseline;
-    }
-
-    article, aside, details, figcaption, figure,
-    footer, header, hgroup, menu, nav, section {
-    display: block;
-    }
-    body {
-    line-height: 1;
-    }
-    ol, ul {
-    list-style: none;
-    }
-    blockquote, q {
-    quotes: none;
-    }
-    blockquote:before, blockquote:after,
-    q:before, q:after {
-    content: '';
-    content: none;
-    }
-    table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    }
-*/
-
 body {
 /*	background-color: rgb(220,220,235);*/
 /*	font-family: "Consolas", "Courier";*/
@@ -146,7 +101,7 @@ p {
 	background: -o-linear-gradient(top,  #ffffed 0%,#222222 90%); /* Opera 11.10+ */
 	background: -ms-linear-gradient(top,  #ffffed 0%,#222222 90%); /* IE10+ */
 	background: linear-gradient(to bottom,  #ffffed 0%,#222222 90%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffed', endColorstr='#222222',GradientType=0 ); /* IE6-9 */
+/*	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffed', endColorstr='#222222',GradientType=0 ); /* IE6-9 */
 }
 
 #footer {
@@ -237,7 +192,7 @@ input, textarea {
 
 .ui-tooltip {
 	font-family: "Consolas", "Courier";
-	font-size:0.8em;
+	font-size:1em;
 }
 
 #btFav{
@@ -249,7 +204,7 @@ input, textarea {
 .square-box{
     position: relative;
 	float:left;
-    width: 14%;
+    width: 13%;
 	margin-bottom:3px;
     overflow: hidden;
 	border-style: dashed;
@@ -261,12 +216,25 @@ input, textarea {
 .square-box-filled { 
     position: relative;
 	float:left;
-    width: 14%;
+    width: 13%;
     overflow: hidden;
 	font-size:0.7em;
 	border-style:solid;
-/*	background: #c8c3ff;*/
 	background: #DAFFBC;
+}
+
+.fn-box-filled {
+    position: relative;
+	float:left;
+    width: 13%;
+    overflow: hidden;
+	font-size:0.7em;
+	border-style:solid;
+	background: #C8CCFF;
+}
+
+.js-function {
+	background-color: #C8CCFF !important;
 }
 
 .square-box:before{
@@ -321,14 +289,25 @@ input, textarea {
 
 .flow_box_arrow { 
 	float:left;
+	height:13%;
 	font-size:2em;
+/*	background: #ddddee;*/
+	z-index:2000;
+}
+
+.flow_box_arrow_active { 
+	float:left;
+	height:17%;
+	font-size:2em;
+	background: #ff2222;
+	z-index:2000;
 }
 
 .toolbox_item {
 	border-radius:8%;
 	height: 30px;
-	width: 162px;
-	margin: 3px; 
+	width: 152px;
+	margin: 1px; 
 	padding: 1px; 
 	float: left;
 	font-size: 0.8em;
@@ -341,14 +320,17 @@ input, textarea {
 
 .toolbox_item_pckg {
 	font-size: 0.9em;
+	overflow: hidden;
 }
 
 .toolbox_item_name {
 	font-size:1.2em;
+	overflow: hidden;
 }
 
 .rm-box-link-hidden { 
 	font-size: 1em;
+	font-weight: bolder;
 	visibility: hidden;
 	display: inline;
 }
@@ -356,7 +338,8 @@ input, textarea {
 	font-size: 1em;
 	color: #aa0000;
 	visibility: inherit;
-	display: inline;
+	font-weight: bolder;
+	/*display: inline;*/
 	border-style: solid;
 	border-width: 1px;
 	padding: 3px;
@@ -399,3 +382,45 @@ input, textarea {
 	margin: 1px;
 /*	overflow: auto;*/
 }
+
+/* Function box diffs based on initialisation */
+.js-fn-uninitialised { 
+	border-color: #aa0000 !important;
+}
+
+.js-fn-initialised {
+	border-color: #00aa00;
+}
+
+/* Initialisation button classes */
+.init-btn {
+	font-size: 1em;
+	color: #aa0000;
+	visibility: inherit;
+	display: inline;
+	border-style: solid;
+	border-width: 1px;
+	padding: 3px;
+	text-decoration:none;
+	font-weight: bold;
+}
+
+.js-btn-not-initialised {
+	border-color: #aa0000;
+	color: #aa0000;
+}
+
+.js-btn-initialised {
+	border-color: #00aa00;
+	color: #00aa00;
+}
+
+label, input { 
+	display:block; 
+}
+input.text { 
+	margin-bottom:12px; 
+	width:95%; 
+	padding: .4em; 
+}
+
