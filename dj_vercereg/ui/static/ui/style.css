@@ -377,13 +377,14 @@ input, textarea {
 	font-family: "Consolas", "Courier";
 	text-align: left;
 	float:left;
-	width:100%;
+	/*width:100%;*/
+	width:500px;
 	font-size:1.2em;
 	margin: 1px;
-/*	overflow: auto;*/
+	/*overflow: auto;*/
 }
 
-/* Function box diffs based on initialisation */
+/* Function box variations based on initialisation */
 .js-fn-uninitialised { 
 	border-color: #aa0000 !important;
 }
@@ -424,3 +425,23 @@ input.text {
 	padding: .4em; 
 }
 
+
+div#wf-title {
+	font-size: 1.8em;
+	margin: 2px;
+	margin-bottom: 10px;
+	margin-top: 6px;
+}
+
+fieldset {
+	padding:0; 
+	border:0; 
+	margin-top:25px; 
+}
+
+.ui-dialog .ui-state-error { padding: .3em; }
+.validateTips { border: 1px solid transparent; padding: 0.3em; }
+
+/*.dialog-form { 
+	max-height: 200px;
+}*/

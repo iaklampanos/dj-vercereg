@@ -20,8 +20,8 @@
 <script>
 var toolbox_dragcheck = false;
 var dialog, form;
+var titlog;
 var	incrementalId = 1;
-
 
 	function endsWith(str, suffix) {
 	    return str.indexOf(suffix, str.length - suffix.length) !== -1;
@@ -93,7 +93,7 @@ var	incrementalId = 1;
 			 $('.toolbox_item').mouseup(update_properties);
 		 })
 		.fail(function(data) {
-			 console.log('failure:' + data);
+			 console.error('failure:' + data);
 		})
 	}	
 
@@ -130,7 +130,6 @@ var	incrementalId = 1;
 	}
 	
 	function arrow_box_drop_action(event, ui) { 
-		console.log('arrow_box_drop_action');
 		var targetDiv = $('div#over_temp_box');
 		var originalDiv = ui.draggable[0];
 
@@ -202,8 +201,12 @@ var	incrementalId = 1;
    		});
 		
 		$('div.arrow-over-wrapper').droppable({
-			drop: function(){console.log('dropped on wrapper')},
-			over: function(){console.log('left wrapper')},
+			drop: function(){
+				// console.log('dropped on wrapper')
+			},
+			over: function(){
+				// console.log('left wrapper')
+			},
 			out: $('div.arrow-over-wrapper').remove(),
 			tolerance: 'pointer',
 			greedy: true
@@ -224,7 +227,7 @@ var	incrementalId = 1;
 		var divToAdd = '<div class="square-content"><div><span class="square-workflow-text"> ' +
 			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
 						'<span class="square-workflow-text-name">' + nm + '</span>' +
-		               '<br/> ' + 
+		               '<br/> ' +
 		               '<br/><a href="#" class="rm-box-link-hidden">' +
 					   'X</a> </span></div></div>';
 		var dv = $.parseHTML(divToAdd);
@@ -238,6 +241,9 @@ var	incrementalId = 1;
 		$(target).attr('data-peurl', $(ui.draggable[0]).attr('data-peurl'));
 		$(target).attr('data-pefqn', $(ui.draggable[0]).attr('data-pefqn'));
 		$(target).attr('id', 'pe-' + incrementalId++);
+
+		$(target).removeClass("js-fn-uninitialised");
+		$(target).removeClass("js-fn-initialised");
 
 		var lnk = $(target).find('.rm-box-link-hidden')
 		$(lnk).click(rm_box_action);
@@ -259,11 +265,11 @@ var	incrementalId = 1;
 			 	       '<span class="square-workflow-text-pckg">' + pckg + '</span><br/>' +
 						'<span class="square-workflow-text-name">' + nm + '</span>' +
 		               '<br/><br/>'+
-					   '<a href="#" class="init-btn"> Initialise </a> ' + 
+					   '<a href="#" class="init-btn"> Set parameters </a> ' + 
 		               '<a href="#" class="rm-box-link-hidden">' +
 					   'Χ</a> </span></div></div>';
 		var dv = $.parseHTML(divToAdd);
-		// console.log( target );
+
 		$(target).click(update_properties);
 		$(target).addClass('js-function');
 		$(target).html(dv);
@@ -308,9 +314,9 @@ var	incrementalId = 1;
 		var parameters = JSON.parse($(pipeline_box).attr('data-properties')).parameters;
 		for (var i = 0; i < parameters.length; i++) {
 			// Ignores parameters that are called 'stream'
-			if ( parameters[i][0] != 'stream' && parameters[i][2].trim() == '' ) { 
+			if ( parameters[i][0] != 'stream' && !isJson( null, parameters[i][2].trim() ) ) {
 				return false;
-			}
+			} 
 		}
 		return true;
 	}
@@ -340,7 +346,9 @@ var	incrementalId = 1;
    			htmlToAdd += row;
 		}
 
-		$('div#dialog-form').html(htmlToAdd);
+		$('span.ui-dialog-title').html($(fn_element).attr('data-fnfqn'));
+		$('div#dialog-form').find('.validateTips').html('Parameters:');
+		$('div#dialog-form').find('fieldset').html(htmlToAdd);
 		$('div#dialog-form').attr('data-src-id', $(fn_element).attr('id'));
 	}
 
@@ -350,7 +358,6 @@ var	incrementalId = 1;
 	 */
 	function init_fn_action(event) {
 		event.stopPropagation();
-		// console.log('init_fn_action');
 		var parent = $(event.target).parents('.js-function')[0];
 		populate_dialog( parent );
 		dialog.dialog( "open" );
@@ -369,7 +376,7 @@ var	incrementalId = 1;
 		
 		$(this).unbind("click");  // click events stack!
 
-		if ( kind == 'FN' ) { 
+		if ( kind == 'FN' ) {
 			drop_fn(event, ui, this);
 		}
 		else if ( kind == 'PE' ) {
@@ -393,8 +400,6 @@ var	incrementalId = 1;
 	}
 	
 	function update_properties_connections(urls) { 
-		// $('div#properties-connections').html('');
-		// console.log('- ' + $('div#properties').html());
 		var toret = "<hr/><b>Connections:</b><br/>";
 		for (var i in urls) {
 			$.ajax({
@@ -402,7 +407,6 @@ var	incrementalId = 1;
 				cache: true
 			})
 			.done(function(data){
-				// console.log('%' + data.kind + '%');
 				if (data.kind == "IN") {
 					$('div#properties-connections-in').append
 					('• <i>' + data.name + '</i>: ' + data.comment + '<br/>');
@@ -413,7 +417,7 @@ var	incrementalId = 1;
 				}
 			})
 			.fail(function(data){
-				console.log(data);
+				console.error(data);
 			})
 		}
 	}
@@ -447,7 +451,7 @@ var	incrementalId = 1;
 			update_properties_connections(data.connections);
 		})
 		.fail(function(data) {
-			console.log('failure:' + data);
+			console.error('failure:' + data);
 		})
 	}
 
@@ -496,20 +500,18 @@ var	incrementalId = 1;
 						ptype = strtype = data.param_type;
 						pdefval = strdefval = data.param_default_val;
 						ret.parameters.push([pname, ptype, pdefval]);
-						// console.log(index);
 					})
 					.fail( function(data) {
-						console.log('failure: ' + data);
+						console.error('failure: ' + data);
 					})
 				);
 			});
 			$.when.apply($, param_deferred).done(function() {	
-				// console.log(ret);
 				callback(ret);
 			});
 		})
 		.fail(function(data) {
-			console.log('failure: ' + data);
+			console.error('failure: ' + data);
 		});
 		return ret;
 	}
@@ -562,7 +564,6 @@ var	incrementalId = 1;
 	}
 	
 	function update_properties_fn(event, target) {
-		// console.log('updating properties for a function');
 		init_properties_divs_fn();
 		var fnurl = $(target).attr('data-fnurl');
 		if ( $(target).attr('data-properties') ) { 
@@ -576,7 +577,6 @@ var	incrementalId = 1;
 	// Update the properties pane on the right-hand side of the window.
 	// This is triggered on click.
 	function update_properties(event) {
-		// console.log('update_properties');
 		$('div#properties').html('');
 		var target = 0;
 		if ( !$( event.target ).hasClass('toolbox_item') && 
@@ -605,7 +605,6 @@ var	incrementalId = 1;
 	 * Setup drag and drop for PEs, from the toolbox to the workflow.
 	 */
 	function set_up_drag_drop() {
-		// console.log('Setting drag and drop');
 		$(".toolbox_item").draggable({
 			cursor: "move",
 			stack: ".toolbox_item",
@@ -633,14 +632,12 @@ var	incrementalId = 1;
 		IMPL_URLS = {};
 		for (var i = 0; i < pe_urls.length; i++) {
 			var u = pe_urls[i];
-			// console.log(u); // OK!
 			deferred.push(
 				$.ajax({
 					url: u,
 					cache: false
 				})
 				.done(function(data){
-					// console.log('DEFERRED DONE: ' + data.url + ' > '  + data.peimpls[0]);
 					IMPL_URLS[data.url] = data.peimpls[0];
 				})
 				.fail(function(data){
@@ -648,7 +645,6 @@ var	incrementalId = 1;
 				})
 			);
 		}
-		// console.log(deferred);
 		return deferred;
 	}
 	
@@ -656,7 +652,6 @@ var	incrementalId = 1;
 		var deferred = [];
 		IMPLS = {};
 		$.each(IMPL_URLS, function(key, value) { 
-			// console.log('retrieve impls: ' + key + ', ' + value);
 			deferred.push(
 				$.ajax({
 					url: value,
@@ -683,7 +678,6 @@ var	incrementalId = 1;
 			if (curr_line.slice(0, 5) == 'class') { 
 				var par_index = curr_line.indexOf('(');
 				var class_name = curr_line.slice(6, par_index).trim();
-				// console.log('"' + class_name + '"');
 				return class_name;
 			}
 		}
@@ -692,7 +686,7 @@ var	incrementalId = 1;
 	
 	function extract_connections_from_impl(impl_str) { 
 		var conns = {'in': [], 'out': []};
-		if (impl_str == undefined) { 
+		if (impl_str == undefined) {
 			return null;
 		}
 		var lines = impl_str.split('\n');
@@ -716,11 +710,23 @@ var	incrementalId = 1;
 	function generate_code_action() { 
 		// get unique PEs
 		var uniq_pes = {};
-		$('.square-box-filled').each(function(index) { 
+		var abort = false; 
+
+		$( '.square-box-filled' ).each(function(index) {
+
+			if ( $( this ).hasClass('js-function') ) {
+				// Abort - don't currently support mixed pipelines
+				$( 'div#error-message' ).html("The generation of Python code is not currently supported for mixed pipelines. Please make sure your pipeline consists only of PEs.").dialog("open");
+				abort = true;
+				return;
+			}
+
 			var url = $(this).attr('data-peurl');
 			var fqn = $(this).attr('data-pefqn');
 			uniq_pes[url] = fqn;
 		});
+
+		if ( abort ) { return; }
 		
 		// extract implementation URLs from PE specs:
 		var deferred = retrieve_impl_urls(Object.keys(uniq_pes));
@@ -741,7 +747,6 @@ var	incrementalId = 1;
 					var box = this;
 					var url = $(this).attr('data-peurl');
 					$.each(IMPLS, function(key, value) {
-						// console.log(url + ' ?= '+ key);
 						if (url.trim() == key.trim()) {
 							$(box).attr('data-peimpl', value);
 							$(box).attr('data-peimpl-class', extract_class_from_impl(value));
@@ -774,9 +779,7 @@ var	incrementalId = 1;
 					errors += 'Please add a PE to the workflow first.\n';
 				}
 				if (abort_code || inits.length == 0)  {
-					// alert(errors);
-					$('#errors').html(errors);
-					$('#errors').dialog()
+					$( 'div#error-message' ).html(errors).dialog("open");
 					return;
 				}	
 				var code = 'from dispel4py.workflow_graph import WorkflowGraph\nimport dispel4py.registry.registry as r\n';
@@ -798,105 +801,255 @@ var	incrementalId = 1;
 				}
 				code += '\n'
 				
-				// console.log(code);
 				$('#code').html($.parseHTML(code));
 				$('#code').dialog();
-				
+
+				// selectText('code');
 			});
 		});
 	}
 
+	function generate_intermediate_code_action() {
+		var filledBoxes = $( '.square-box-filled' ); 
+		var code = {};
+
+		// XXX General properties - here we should add the registry's URL and other 
+		// properties too... 
+		code["output_units"] = "velocity";
+    	code["rotate_to_ZRT"] = true;
+    	code["title"] = $( 'div#wf-title' ).text();
+    	code["data_processing"] = [];
+
+		for ( var i = 0; i < filledBoxes.length; i++ ) {
+			var currBox = filledBoxes[i];
+			if ( ! $( currBox ).hasClass( 'js-function' ) ) {
+				$( "div#error-message" ).html("The generation of intermediate code is not currently supported for mixed pipelines. Please make sure your pipeline consists only of functions.").dialog( "open" );
+				return;
+			}
+			if ( ! hasBeenInitialised( currBox ) ) { 
+				$( "div#error-message" ).html("Please make sure you have set the parameters of all functions.").dialog( "open" );
+				return;	
+			}
+
+			var obj = {};
+			obj["type"] = $( currBox ).attr("data-fnfqn");
+			obj["url"] = $( currBox ).attr("data-fnurl");
+			obj["parameters"] = {};
+
+			var params = JSON.parse( $( currBox ).attr( "data-properties" ) ).parameters;
+			for ( var j = 0; j < params.length; j++ ) {
+				var paramName = params[j][0];
+				if ( paramName == "stream" ) {  // Ignore "stream" parameters
+					continue; 
+				}
+				var paramValue = params[j][2];
+				obj.parameters[paramName] = JSON.parse(paramValue);
+			}
+			code.data_processing.push(obj);
+		}
+		$( "#code" ).text( JSON.stringify(code, null, 4) );
+		$( "#code" ).dialog();
+
+		// selectText('code');
+	}
+
+	function updateTips( t ) {
+		tips
+			.text( t )
+			.addClass( "ui-state-highlight" );
+		setTimeout(function() {
+			tips.removeClass( "ui-state-highlight", 1500 );
+		}, 500 );
+    }
+
+    // XXX Not working great. CSS or other issues?
+	function selectText(element) {
+	    var doc = document
+	        , text = doc.getElementById(element)
+	        , range, selection
+	    ;    
+	    if (doc.body.createTextRange) {
+	        range = document.body.createTextRange();
+	        range.moveToElementText(text);
+	        range.select();
+	    } else if (window.getSelection) {
+	        selection = window.getSelection();        
+	        range = document.createRange();
+	        range.selectNodeContents(text);
+	        selection.removeAllRanges();
+	        selection.addRange(range);
+	    }
+	}
+
+	/**
+	 * Update an element's parameters based on the values of the parameters dialog.
+	 * @return {boolean} Whether all values are valid on the form?
+	 */
 	function init_fn_dialog() {
-		console.log('Changing parameter values to a fn');
+		var valid = true;
+
 		var inputs = $('div#dialog-form').find('input');
+		inputs.removeClass( "ui-state-error" );
 		var src_id = $('div#dialog-form').attr('data-src-id');
 		var src = $('div#' + src_id);
-		var properties = JSON.parse($(src).attr('data-properties'));
+		var properties = JSON.parse( $( src ).attr( 'data-properties' ) );
 
 		for ( var i = 0; i < inputs.length; i++ ) {
-			var parName = $(inputs[i]).attr('name');
-			var parVal = $(inputs[i]).val();
+			var parName = $( inputs[i] ).attr( 'name' );
+			var parVal = $( inputs[i] ).val();
+			valid = valid && isJson( inputs[i], parVal );
 			// XXX Refactor - parameters should be a dictionary by parameter name 
 			// in order to avoid the inner loop...
 			for ( var j = 0; j < properties.parameters.length; j++ ) { 
 				var currp = properties.parameters[j];
-				if (currp[0] == parName) {
+				if ( currp[0] == parName ) {
 					currp[2] = parVal;
 					break;
 				}
 			}
 			properties.parameters[parName] = parVal;
 		}
-		$(src).attr('data-properties', JSON.stringify(properties));
-		console.log('>>> ' + JSON.stringify(properties));
+		if (valid) {
+			$(src).attr('data-properties', JSON.stringify(properties));
 
-		$(src).removeClass('js-fn-uninitialised');
-		$(src).removeClass('js-fn-initialised');
-		if (! hasBeenInitialised(src)) {
-			$(src).addClass('js-fn-uninitialised');
-			$(src).find('.init-btn').removeClass('js-btn-initialised');
-			$(src).find('.init-btn').addClass('js-btn-not-initialised');
+			$(src).removeClass('js-fn-uninitialised');
+			$(src).removeClass('js-fn-initialised');
+			if (! hasBeenInitialised(src)) {
+				$(src).addClass('js-fn-uninitialised');
+				$(src).find('.init-btn').removeClass('js-btn-initialised');
+				$(src).find('.init-btn').addClass('js-btn-not-initialised');
+			}
+			else {
+				$(src).addClass('js-fn-initialised');
+				$(src).find('.init-btn').removeClass('js-btn-not-initialised');
+				$(src).find('.init-btn').addClass('js-btn-initialised');
+			}
+			dialog.dialog( "close" );
 		}
-		else {
-			$(src).addClass('js-fn-initialised');
-			$(src).find('.init-btn').removeClass('js-btn-not-initialised');
-			$(src).find('.init-btn').addClass('js-btn-initialised');
-		}
+		return valid;
+	}
 
+	function changeTitle() {
+		var newTitle = $( 'input#wf-title-in' ).val();
+		$( 'div#wf-title' ).text( newTitle );
+		titlog.dialog( 'close' );
+	}
+
+	function isJson(element, str) {
+	    try {
+	        JSON.parse(str);
+	    } catch (e) {
+	    	if ( element !== null ) {
+		    	$( element ).addClass( "ui-state-error" );
+		    	updateTips( "Invalid JSON expression" );
+	    	}
+	        return false;
+	    }
+	    return true;
 	}
 
 $(document).ready(function(){
 	var $loading = $('#loading').hide();
+	
+	// Global variable: tips 
+	tips = $( '.validateTips' );
+
 	$( document ).tooltip({
-		show: {effect: "fade", duration:150},
-		fade: {effect: "fade", duration:150}
+		show: {effect: "fade", duration:20},
+		fade: {effect: "fade", duration:20}
 	});
+
 	$( document )
 	.ajaxStart(function () {
 	    $loading.show();
-	  })
-	  .ajaxStop(function () {
-	    $loading.hide();
-	  });
-	  $(document).tooltip({ track: true});
-	  $('a#help_link').click(function(event){
-		  event.preventDefault();
-		  $('#help').dialog();
-	  });
-	  $('a#generate_code').click(function(event) {
-		  event.preventDefault();
-		  generate_code_action();
-	  });
-	$('#menu').html('<div style="text-align:center; font-weight:bold">Toolbox <hr/></div>');
-	populate_toolbox();
-	init_flow_divs();
+	})
+	.ajaxStop(function () {
+		$loading.hide();
+	});
 
+	$( 'a#help_link' ).click( function(event) {
+		event.preventDefault();
+		$('#help').dialog();
+	});
+
+	$( 'a#generate_code' ).click( function(event) {
+		event.preventDefault();
+		generate_code_action();
+	});
+
+	$( 'a#generate_intermediate_code' ).click( function(event) {
+		event.preventDefault();
+		generate_intermediate_code_action();
+	});
+
+	$('#menu').html('<div style="text-align:center; font-weight:bold">Toolbox <hr/></div>');
+
+	populate_toolbox();
 	
+	init_flow_divs();
 
 	dialog = $( "#dialog-form" ).dialog({
       autoOpen: false,
-      height: 300,
+      // height: 400,
       width: 350,
       modal: true,
       buttons: {
         "OK": function(event) {
-        	console.log(event);
-        	console.log( "OK clicked" );
         	init_fn_dialog();
-        	dialog.dialog( "close" );
+        	// dialog.dialog( "close" );
         },
         Cancel: function() {
           	dialog.dialog( "close" );
         }
       },
       close: function() {
-        // allFields.removeClass( "ui-state-error" );
+      	form[ 0 ].reset();
+      	var allFields = $( 'input.ui-widget-content' );
+        allFields.removeClass( "ui-state-error" );
       }
     });
  
+ 	// XXX Hitting ENTER won't accept the values and close the dialog
     form = dialog.find( "form" ).on( "submit", function( event ) {
       event.preventDefault();
       init_fn_dialog();
+    });
+
+    titlog = $( "#wf-title-div" ).dialog({
+      autoOpen: false,
+      height: 200,
+      width: 350,
+      modal: true,
+      buttons: {
+        "OK": changeTitle,
+        Cancel: function() {
+          	titlog.dialog( "close" );
+        }
+      },
+      close: function() {
+      }
+    });
+ 
+    formtitle = titlog.find( "form" ).on( "submit", function( event ) {
+      event.preventDefault();
+      changeTitle();
+    });
+
+    errorMessage = $( "#error-message" ).dialog({
+      autoOpen: false,
+      modal: true,
+      buttons: {
+        Ok: function() {
+          $( this ).dialog( "close" );
+        }
+      }
+    });
+
+    $( 'div#wf-title' ).click( function(event) {
+    	event.preventDefault();
+    	$( 'input#wf-title-in' ).val( $( 'div#wf-title' ).html() );
+    	$( 'input#wf-title-in' ).select();
+    	titlog.dialog("open");
     });
 
 });
@@ -914,17 +1067,26 @@ $(document).ready(function(){
 
 
 {% block content %}
+<div id="wf-title">Untitled</div>
+
+<div id="error-message" title="Error"> </div>
+
+<div id="wf-title-div" title="New name">
+	<form>
+	    <fieldset id="wf-title-fset">
+	    	<!-- <label for="wf-title-in">New title</label> -->
+		    <input type="text" name="wf-title-in" id="wf-title-in" value="" class="text ui-widget-content ui-corner-all" > </input>
+		    <input type="submit" tabindex="-1" style="position:absolute; top:-1000px" />
+	    </fieldset>
+    </form>
+</div>
 
 <div id="dialog-form" title="Parameters">
-  <p class="validateTips">Please supply a valid Python value for each parameter below.</p>
- 
+  <div class="validateTips">Parameters:</div> 
   <form>
     <fieldset id="fieldset-params">
-      <!-- <label for="name">Name</label>
-      <input type="text" name="name" id="name" value="Jane Smith" class="text ui-widget-content ui-corner-all"> -->
-
       <!-- Allow form submission with keyboard without duplicating the dialog button -->
-      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+      <input type="submit" tabindex="-1" style="position:absolute; top:-1000px" />
     </fieldset>
   </form>
 </div>
@@ -955,8 +1117,11 @@ $(document).ready(function(){
 {% endblock %}
 
 {% block actions %}
-<a href="#" id="generate_code">Generate Code</a> 
-| <a href="#" id="help_link">Help</a>
+<a title="Generate intermediate JSON code corresponding to the designed pipeline. This currently requires that the pipeline consists only of functions." href="#" id="generate_intermediate_code">Generate Intermediate Code</a>
+| 
+<a title="Generate dispel4py Python code corresponding to the designed pipeline. This currently requires that the pipeline consists only of PEs." href="#" id="generate_code">Generate Python Code</a> 
+| 
+<a href="#" id="help_link">Help</a>
 <div id="loading">
 	<img src="{% static "ui/images/ajax-loading.gif" %}" style="height:20px; width:20px;"/>
 </div>
