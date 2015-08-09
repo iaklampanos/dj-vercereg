@@ -346,7 +346,9 @@ var	incrementalId = 1;
    			htmlToAdd += row;
 		}
 
-		$('span.ui-dialog-title').html($(fn_element).attr('data-fnfqn'));
+		// $('span.ui-dialog-title').html($(fn_element).attr('data-fnfqn'));
+		$('div#dialog-form').dialog('option', 'title', $(fn_element).attr('data-fnfqn') );
+
 		$('div#dialog-form').find('.validateTips').html('Parameters:');
 		$('div#dialog-form').find('fieldset').html(htmlToAdd);
 		$('div#dialog-form').attr('data-src-id', $(fn_element).attr('id'));
@@ -716,7 +718,7 @@ var	incrementalId = 1;
 
 			if ( $( this ).hasClass('js-function') ) {
 				// Abort - don't currently support mixed pipelines
-				$( 'div#error-message' ).html("The generation of Python code is not currently supported for mixed pipelines. Please make sure your pipeline consists only of PEs.").dialog("open");
+				$( 'div#error-message' ).html("The generation of Python code is not currently supported for mixed or function-only pipelines. Please make sure your pipeline consists only of PEs.").dialog("open");
 				abort = true;
 				return;
 			}
@@ -802,7 +804,10 @@ var	incrementalId = 1;
 				code += '\n'
 				
 				$('#code').html($.parseHTML(code));
+
 				$('#code').dialog();
+
+				$('div#code').dialog('option', 'title', 'Python code' );
 
 				// selectText('code');
 			});
@@ -848,8 +853,10 @@ var	incrementalId = 1;
 			code.data_processing.push(obj);
 		}
 		$( "#code" ).text( JSON.stringify(code, null, 4) );
+		
 		$( "#code" ).dialog();
 
+		$('div#code').dialog('option', 'title', 'Intermediate code' );
 		// selectText('code');
 	}
 
