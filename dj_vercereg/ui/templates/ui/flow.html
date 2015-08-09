@@ -823,7 +823,7 @@ var	incrementalId = 1;
 		for ( var i = 0; i < filledBoxes.length; i++ ) {
 			var currBox = filledBoxes[i];
 			if ( ! $( currBox ).hasClass( 'js-function' ) ) {
-				$( "div#error-message" ).html("The generation of intermediate code is not currently supported for mixed pipelines. Please make sure your pipeline consists only of functions.").dialog( "open" );
+				$( "div#error-message" ).html("The generation of intermediate code is not currently supported for mixed or PE-only pipelines. Please make sure your pipeline consists only of functions.").dialog( "open" );
 				return;
 			}
 			if ( ! hasBeenInitialised( currBox ) ) { 
@@ -1092,10 +1092,13 @@ $(document).ready(function(){
 </div>
 
 <div id="help" title="Help" style="font-size:0.9em; font-family:'Arial'">
-	<p>Drag and drop PEs from the toolbox on the left to form a simple workflow.</p>
-	<p>Add and remove PEs to customise your workflow. </p>
-	<p>Click on an element to view further details. </p>
-	<p>Click on the <em>Generate Code</em> link below to have your dispel4py code generated based on your graph.</p>
+	<ul>
+	<li>Drag and drop PEs or functions from the toolbox on the left to form a simple workflow.</li>
+	<li>Add and remove PEs or functions to customise your workflow. </li>
+	<li>Parameterise functions by clicking on <em>Set parameters</em>. All parameters have to be valid JSON.
+	<li>Click on an element to view further details. </li>
+	<li>Click on the <em>Generate Code</em> links to have your dispel4py code generated based on your pipeline. <br/>(Currently, intermediate code is available for pipelines consisting only of functions, while Python code is available for pipelines consisting only of PEs.) </li>
+	</ul>
 </div>
 
 <div id="errors" title="Error!" style="font-size:0.9em; font-family:'Arial'">
