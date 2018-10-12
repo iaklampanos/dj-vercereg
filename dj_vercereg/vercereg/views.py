@@ -77,6 +77,10 @@ import sys
 
 import utils
 
+# Pip package update 12/10/2018 (davve.ath) 
+# MODIFIED request.QUERY_PARAMS -> request.query_params
+# MODIFIED request.DATA -> request.data
+
 
 def set_workspace_default_permissions(wspc, user):
     """Sets the default permissions to a newly created workspace."""
@@ -108,7 +112,7 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
             return RegistryUserGroupSerializer
 
     def create(self, request):
-        reqdata = request.DATA
+        reqdata = request.data
         user = request.user
 
         # Create a new group
@@ -151,16 +155,16 @@ class RegistryUserGroupViewSet(viewsets.ModelViewSet):
 
         # Update the group:
         g = rug.group
-        if (g.name != request.DATA['group_name']):
-            g.name = request.DATA['group_name']
+        if (g.name != request.data['group_name']):
+            g.name = request.data['group_name']
             g.save()
 
         # Update the registryusergroup
         # FIXME Using manual id extraction, there must be a better way...
-        id = extract_id_from_url(request.DATA.get('owner'))
+        id = extract_id_from_url(request.data.get('owner'))
         user = User.objects.get(id=id)
         rug.owner = user
-        rug.description = request.DATA['description']
+        rug.description = request.data['description']
 
         # Save the registryusergroup
         rug.save()
@@ -201,9 +205,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                   of workspaces.
               paramType: query
         """
-        name_param = request.QUERY_PARAMS.get('name')
-        username_param = request.QUERY_PARAMS.get('username')
-        search_param = request.QUERY_PARAMS.get('search')
+        name_param = request.query_params.get('name')
+        username_param = request.query_params.get('username')
+        search_param = request.query_params.get('search')
         if username_param:
             corr_user = User.objects.filter(username=username_param)
         if name_param and username_param:
@@ -277,10 +281,10 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
 
         pes = functions = literals = fnimpls = peimpls = packages = None
 
-        kind_to_show = request.QUERY_PARAMS.get('kind')
-        ls = 'ls' in request.QUERY_PARAMS
+        kind_to_show = request.query_params.get('kind')
+        ls = 'ls' in request.query_params
 
-        search_param = request.QUERY_PARAMS.get('search')
+        search_param = request.query_params.get('search')
 
         if search_param:
             print 'IN SEARCH'
@@ -310,7 +314,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         # fqns are unique within workspaces, so 0..1 results are expected when
         # fqn is specified; ls is ignored (as we know the fqn of the item
         # we're looking for already)
-        fqn_param = request.QUERY_PARAMS.get('fqn')
+        fqn_param = request.query_params.get('fqn')
         fqn_pkg = None
         fqn_nam = None
         if fqn_param:
@@ -378,7 +382,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                 (fqn_param, wspc.name)}
             return Response(msg, status=status.HTTP_404_NOT_FOUND)
 
-        starts_with = request.QUERY_PARAMS.get('startswith')
+        starts_with = request.query_params.get('startswith')
 
         # fqn takes precedence over starts_with, in case both are specified
         if not starts_with or fqn_param:
@@ -588,7 +592,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
             paramType: query
             type: long
         """
-        clone_of = request.QUERY_PARAMS.get('clone_of')
+        clone_of = request.query_params.get('clone_of')
         if not clone_of:
             return super(WorkspaceViewSet, self).create(request)
 
@@ -609,12 +613,12 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         #         (clone_of)}
         #     return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
-        if not request.DATA.get('name'):
+        if not request.data.get('name'):
             msg = {'error': 'name is required'}
             return Response(msg, status=status.HTTP_400_BAD_REQUEST)
 
         cloner = WorkspaceCloner(or_wspc,
-                                 request.DATA.get('name'),
+                                 request.data.get('name'),
                                  request.user,
                                  context={'request': request})
         try:
@@ -640,7 +644,7 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     #           description: search terms for looking up workspaces
     #           type: string
     #   """
-    #   if request.QUERY_PARAMS.get('search'):
+    #   if request.query_params.get('search'):
     #       # resort to default bahaviour
     #       return super(WorkspaceViewSet, self).list(request)
     #   allowed_workspaces = []
@@ -720,7 +724,7 @@ class UserViewSet(viewsets.ModelViewSet):
         # the new group. It returns the regular serialized version of the newly
         # created user.
         # (https://github.com/iaklampanos/dj-vercereg/wiki/Creating-users)
-        reqdata = request.DATA
+        reqdata = request.data
 
         try:
             u = User.objects.create_user(
@@ -825,8 +829,8 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
                 under.
             paramType: query
         """
-        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
-        target_name_param = request.QUERY_PARAMS.get('target_name')
+        copy_to_id_param = request.query_params.get('copy_to')
+        target_name_param = request.query_params.get('target_name')
         
         if not copy_to_id_param:
             return super(LiteralSigViewSet, self).retrieve(request, pk)
@@ -913,8 +917,8 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
                 under.
             paramType: query
         """
-        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
-        target_name_param = request.QUERY_PARAMS.get('target_name')
+        copy_to_id_param = request.query_params.get('copy_to')
+        target_name_param = request.query_params.get('target_name')
         
         if not copy_to_id_param:
             return super(FunctionSigViewSet, self).retrieve(request, pk)
@@ -1051,8 +1055,8 @@ class PESigViewSet(viewsets.ModelViewSet):
                 under.
             paramType: query
         """
-        copy_to_id_param = request.QUERY_PARAMS.get('copy_to')
-        target_name_param = request.QUERY_PARAMS.get('target_name')
+        copy_to_id_param = request.query_params.get('copy_to')
+        target_name_param = request.query_params.get('target_name')
         
         if not copy_to_id_param:
             return super(PESigViewSet, self).retrieve(request, pk)

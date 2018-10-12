@@ -277,12 +277,18 @@ class ConnectionSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Connection
+        # Pip package update 12/10/2018 (davve.ath) 
+        # ADDED: fields, can't have empty fields
+        fields = '__all__'
 
 
 class FunctionParameterSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = FunctionParameter
+        # Pip package update 12/10/2018 (davve.ath) 
+        # ADDED: fields, can't have empty fields
+        fields = '__all__'
 
 ##############################################################################
 
