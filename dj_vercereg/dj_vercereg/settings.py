@@ -53,6 +53,24 @@ ALLOWED_HOSTS = []
 #     'django.core.context_processors.request'
 # )
 
+# Pip package update 12/10/2018 (davve.ath)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
 INSTALLED_APPS = (
     # 'suit',
     'django.contrib.admin',
@@ -130,11 +148,13 @@ AUTHENTICATION_BACKENDS = (
 ANONYMOUS_USER_ID = -1
 ###############################################################
 
-from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
+# Pip package update 12/10/2018 (davve.ath)
 
-TEMPLATE_CONTEXT_PROCESSORS = TCP + (
-    'django.core.context_processors.request',
-)
+#  from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
+#
+#  TEMPLATE_CONTEXT_PROCESSORS = TCP + (
+    #  'django.core.context_processors.request',
+#  )
 
 # Django Suit configuration example
 #SUIT_CONFIG = {

@@ -10,6 +10,7 @@ django-rest-swagger==2.2.0
 django-reversion==3.0.0
 django-suit==0.2.26
 djangorestframework==3.8.2
+django-watson==1.5.2
 ecdsa==0.13
 paramiko==2.4.2
 pycrypto==2.6.1
