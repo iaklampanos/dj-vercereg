@@ -1,8 +1,8 @@
 #!/bin/bash
-localsettemp=/registry/dj-vercereg/dj_vercereg/dj_vercereg/local_settings_template.py
-localset=/registry/dj-vercereg/dj_vercereg/dj_vercereg/local_settings.py
+localsettemp=/registry/dj_vercereg/dj_vercereg/local_settings_template.py
+localset=/registry/dj_vercereg/dj_vercereg/local_settings.py
 port=8000
-dj_path=/registry/dj-vercereg/dj_vercereg
+dj_path=/registry/dj_vercereg
 
 # Local settings workflow / initializer
 
