@@ -52,8 +52,8 @@ clean:: dc
 	python manage.py migrate --run-syncdb
 	python manage.py createsuperuser
 	python manage.py loaddata fixtures/def_group.json
-	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) < ../sql/fix_mysql_for_watson.sql
-	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) dj_vercereg < ../sql/fix_mysql_for_watson.sql
+	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) < ../sql/fix_mysql_for_watson.sql
+	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) dj_vercereg < ../sql/fix_mysql_for_watson.sql
 
 test::
 	python manage.py test --keepdb
