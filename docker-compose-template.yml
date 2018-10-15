@@ -14,7 +14,7 @@ services:
       - registrynet
 
   dj-reg:
-      image: reg
+      image: dj-vercereg
       container_name: dj-reg
       ports:
           - "8000:8000"
