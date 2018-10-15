@@ -19,7 +19,7 @@ DB_USER=root
 DB_PASS=root
 DB_EXEC=mysql
 DB_NAME=dj_vercereg
-DB_HOST=localhost
+DB_HOST=dj-reg-db
 DB_PORT=3306
 DB_COMMAND=$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) $(DB_NAME)
 

@@ -28,7 +28,7 @@ DATABASES = {
         'NAME': 'dj_vercereg',
         'USER': 'root',
         'PASSWORD': 'root',
-        'HOST': 'localhost',
+        'HOST': 'dj-reg-db',
         'PORT': '3306',
     }
 }

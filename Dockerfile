@@ -10,4 +10,5 @@ RUN apt-get update && apt-get install -y python-dev python-pip python-setuptools
 RUN git clone https://github.com/davidath/dj-vercereg.git registry
 RUN pip install -r /registry/dj_vercereg/python_env_requirements.txt
 
-CMD tail -f /dev/null
+
+CMD ["/bin/bash", "/registry/dj_vercereg/start-registry.sh"]

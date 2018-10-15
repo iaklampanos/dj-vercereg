@@ -2,7 +2,7 @@ version: "2"
 
 services:
   mysqldb:
-      image: mysql
+      image: mysql:8.0
       container_name: dj-reg-db
       environment:
           - MYSQL_DATABASE=dj_vercereg
