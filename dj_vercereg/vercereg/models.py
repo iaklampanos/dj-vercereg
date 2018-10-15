@@ -21,7 +21,8 @@ from django.contrib.auth.models import Group
 # from rest_framework.authtoken.models import Token
 from vercereg.separated_values_field import SeparatedValuesField
 import reversion
-import datetime
+# Pip package update 12/10/2018 (davve.ath)
+# import datetime
 # from vercereg.utils import get_base_rest_uri
 
 from django.core.exceptions import ValidationError
@@ -79,7 +80,9 @@ class Workspace(models.Model):
         validators=[validate_name])
     owner = models.ForeignKey(User)
     description = models.TextField(null=True, blank=True)
-    creation_date = models.DateTimeField(default=datetime.datetime.now())
+    # Pip package update 12/10/2018 (davve.ath)
+    #  creation_date = models.DateTimeField(default=datetime.datetime.now())
+    creation_date = models.DateTimeField(auto_now_add=True)
 
     # The URL of the original item
     clone_of = models.CharField(max_length=200,
