@@ -34,7 +34,7 @@ help:://
 	@echo "   db-shell: execute a mysql shell to the VERCE Registry DB"
 	@echo "   db-dropcreate: drop and create the DB schema"
 	@echo "   clean: drop and create the DB schema as well as add fixtures and a superuser"
-	@echo "   test: run predefined tests"
+	@echo "   test: run predefined tests, first time running initializes temporary tables, rerun for test results (despite errors during initialization)"
 	@echo "   run: start webserver"
 
 
