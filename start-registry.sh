@@ -19,9 +19,9 @@ fi
 
 # Registry db initializations
 
-until python $dj_path/manage.py makemigrations;do
+until python $dj_path/manage.py makemigrations >> /dev/null;do
       echo "Waiting mysql docker to setup........"
-      sleep 10
+      sleep 1
 done
 
 echo "Initializing....."

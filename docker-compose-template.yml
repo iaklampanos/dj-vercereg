@@ -12,6 +12,8 @@ services:
           - "3306:3306"
       networks:
       - registrynet
+      logging:
+          driver: none
 
   dj-reg:
       image: dj-vercereg
