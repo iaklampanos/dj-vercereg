@@ -19,8 +19,12 @@ fi
 
 # Registry db initializations
 
-echo 'Initializing.....'
+echo "Waiting mysql docker to setup"
+until python $dj_path/manage.py makemigrations;do
+      sleep 1
+done
 
+echo "Initializing....."
 python $dj_path/manage.py makemigrations
 python $dj_path/manage.py migrate
 python $dj_path/manage.py migrate --run-syncdb
@@ -32,16 +36,16 @@ username=`sed -n "s/^.*'\(.*\)'.*$/\1/ p" <<< ${username}`
 password=`cat $localset | grep PASSWORD | awk -F ":" '{print $2}'`
 password=`sed -n "s/^.*'\(.*\)'.*$/\1/ p" <<< ${password}`
 
-email=$username'@example.com'
+email=$username"@example.com"
 
-echo 'Creating super user.....'
+echo "Creating super user....."
 
 echo "from django.contrib.auth.models import User; User.objects.create_superuser($username, $email, $password)" | python $dj_path/manage.py shell
 
-echo 'Fixtures....'
+echo "Fixtures...."
 
 python $dj_path/manage.py loaddata fixtures/def_group.json
 
-echo 'Starting web server....'
+echo "Starting web server...."
 
 python $dj_path/manage.py runserver 0.0.0.0:$port

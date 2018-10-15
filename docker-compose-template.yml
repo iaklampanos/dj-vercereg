@@ -20,6 +20,8 @@ services:
           - "8000:8000"
       networks:
       - registrynet
+      depends_on: 
+      - mysqldb
 
 networks:
   registrynet:
