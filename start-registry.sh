@@ -19,9 +19,9 @@ fi
 
 # Registry db initializations
 
-echo "Waiting mysql docker to setup"
 until python $dj_path/manage.py makemigrations;do
-      sleep 1
+      echo "Waiting mysql docker to setup........"
+      sleep 10
 done
 
 echo "Initializing....."
@@ -40,11 +40,11 @@ email=$username"@example.com"
 
 echo "Creating super user....."
 
-echo "from django.contrib.auth.models import User; User.objects.create_superuser($username, $email, $password)" | python $dj_path/manage.py shell
+echo "from django.contrib.auth.models import User; User.objects.create_superuser('$username', '$email', '$password')" | python $dj_path/manage.py shell
 
 echo "Fixtures...."
 
-python $dj_path/manage.py loaddata fixtures/def_group.json
+python $dj_path/manage.py loaddata $dj_path/fixtures/def_group.json
 
 echo "Starting web server...."
 
