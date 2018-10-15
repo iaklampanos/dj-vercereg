@@ -2,6 +2,7 @@
 localsettemp=/registry/dj-vercereg/dj_vercereg/dj_vercereg/local_settings_template.py
 localset=/registry/dj-vercereg/dj_vercereg/dj_vercereg/local_settings.py
 port=8000
+dj_path=/registry/dj-vercereg/dj_vercereg
 
 # Local settings workflow / initializer
 
@@ -20,9 +21,9 @@ fi
 
 echo 'Initializing.....'
 
-./manage.py makemigrations
-./manage.py migrate
-./manage.py migrate --run-syncdb
+python $dj_path/manage.py makemigrations
+python $dj_path/manage.py migrate
+python $dj_path/manage.py migrate --run-syncdb
 
 # Create superuser from localsettings
 username=`cat $localset | grep USER | awk -F ":" '{print $2}'`
@@ -39,8 +40,8 @@ echo "from django.contrib.auth.models import User; User.objects.create_superuser
 
 echo 'Fixtures....'
 
-./manage.py loaddata fixtures/def_group.json
+python $dj_path/manage.py loaddata fixtures/def_group.json
 
 echo 'Starting web server....'
 
-./manage.py runserver 0.0.0.0:$port
+python $dj_path/manage.py runserver 0.0.0.0:$port
