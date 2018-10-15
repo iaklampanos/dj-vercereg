@@ -23,6 +23,9 @@ DB_HOST=dj-reg-db
 DB_PORT=3306
 DB_COMMAND=$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) -h$(DB_HOST) --port=$(DB_PORT) $(DB_NAME)
 
+WEB_HOST=0.0.0.0
+WEB_PORT=8000
+
 help:://
 	@echo "Help:"
 	@echo "   make <command> <params>"
@@ -31,6 +34,10 @@ help:://
 	@echo "   db-shell: execute a mysql shell to the VERCE Registry DB"
 	@echo "   db-dropcreate: drop and create the DB schema"
 	@echo "   clean: drop and create the DB schema as well as add fixtures and a superuser"
+	@echo "   test: run predefined tests"
+	@echo "   run: start webserver"
+
+
 	
 db-shell::
 	$(DB_COMMAND)
@@ -40,8 +47,16 @@ db-dropcreate::
 	echo "drop schema $(DB_NAME); create schema $(DB_NAME)" | $(DB_COMMAND)
 
 clean:: dc
-	python manage.py syncdb
-	python manage.py loaddata fixtures/def_group.json
+	python manage.py makemigrations
+	python manage.py migrate
+	python manage.py migrate --run-syncdb
 	python manage.py createsuperuser
+	python manage.py loaddata fixtures/def_group.json
 	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) < ../sql/fix_mysql_for_watson.sql
 	$(DB_EXEC) -u$(DB_USER) -p$(DB_PASS) dj_vercereg < ../sql/fix_mysql_for_watson.sql
+
+test::
+	python manage.py test --keepdb
+
+run::
+	python manage.py runserver $(WEB_HOST):$(WEB_PORT)
