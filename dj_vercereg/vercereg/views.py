@@ -636,6 +636,11 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
                                          context={'request': request})
         return Response(serializer.data)
 
+    # Pip package update 12/10/2018 (davve.ath)
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
     # def list(self, request):
     #   """ Retrieve a list of workspaces.
     #       ---
@@ -879,6 +884,10 @@ class LiteralSigViewSet(viewsets.ModelViewSet):
                                               context={'request': request})
             return Response(serializer.data)
 
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
 class FunctionSigViewSet(viewsets.ModelViewSet):
 
@@ -966,6 +975,12 @@ class FunctionSigViewSet(viewsets.ModelViewSet):
             serializer = FunctionSigSerializer(clone,
                                                context={'request': request})
             return Response(serializer.data)
+
+    # Pip package update 12/10/2018 (davve.ath)
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
 
 class FunctionParameterViewSet(viewsets.ModelViewSet):
@@ -1130,6 +1145,12 @@ class PEImplementationViewSet(viewsets.ModelViewSet):
         if not obj.pk:
             obj.user = self.request.user
 
+    # Pip package update 12/10/2018 (davve.ath)
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
 
 class FnImplementationViewSet(viewsets.ModelViewSet):
 
@@ -1155,3 +1176,8 @@ class FnImplementationViewSet(viewsets.ModelViewSet):
         obj.creation_date = timezone.now()
         if not obj.pk:
             obj.user = self.request.user
+
+    # Pip package update 12/10/2018 (davve.ath)
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

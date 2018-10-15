@@ -139,7 +139,9 @@ class WorkspaceItem(models.Model):
     pckg = models.CharField(max_length=100, validators=[validate_package])
     name = models.CharField(max_length=100, validators=[validate_name])
     user = models.ForeignKey(User)
-    creation_date = models.DateTimeField()
+    # Pip package update 12/10/2018 (davve.ath)
+    #  creation_date = models.DateTimeField(default=datetime.datetime.now())
+    creation_date = models.DateTimeField(auto_now_add=True)
 
     # The URL of the original item
     clone_of = models.CharField(max_length=200,

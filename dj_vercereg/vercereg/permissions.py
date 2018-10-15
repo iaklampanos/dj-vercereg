@@ -14,6 +14,10 @@
 
 from rest_framework import permissions
 
+# Pip package update 12/10/2018 (davve.ath) 
+# MODIFIED request.QUERY_PARAMS -> request.query_params
+# MODIFIED request.DATA -> request.data
+
 
 class RegistryUserGroupAccessPermissions(permissions.BasePermission):
 
@@ -103,7 +107,7 @@ class WorkspaceItemPermissions(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
-            if 'copy_to' in request.QUERY_PARAMS:
+            if 'copy_to' in request.query_params:
                 # check we can write in the target workspace
                 print obj.workspace
                 return (request.user == obj.workspace.owner or
