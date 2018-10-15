@@ -29,7 +29,6 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': 'root',
         'HOST': 'dj-reg-db',
-        'PORT': '3306',
-        'OPTIONS': {'charset': 'utf8mb3'}
+        'PORT': '3306'
     }
 }
