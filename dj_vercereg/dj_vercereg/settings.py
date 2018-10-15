@@ -65,8 +65,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
             'debug': DEBUG,
-            'DEBUG': DEBUG,
-            'TEMPLATE_DEBUG': DEBUG
         },
     },
 ]
