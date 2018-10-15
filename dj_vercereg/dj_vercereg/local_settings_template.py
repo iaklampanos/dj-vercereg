@@ -30,6 +30,6 @@ DATABASES = {
         'PASSWORD': 'root',
         'HOST': 'dj-reg-db',
         'PORT': '3306',
-        'OPTIONS': {'charset': 'UTF8MB4'}
+        'OPTIONS': {'charset': 'utf8mb3'}
     }
 }
