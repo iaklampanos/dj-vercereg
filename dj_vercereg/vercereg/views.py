@@ -637,9 +637,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     # Pip package update 12/10/2018 (davve.ath)
-    # Need to override super method, otherwise user id is null
+    # Need to override super method, otherwise owner id is null
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(owner=self.request.user)
 
     # def list(self, request):
     #   """ Retrieve a list of workspaces.
@@ -1119,6 +1119,11 @@ class PESigViewSet(viewsets.ModelViewSet):
             serializer = PESigSerializer(clone,
                                          context={'request': request})
             return Response(serializer.data)
+
+    # Pip package update 12/10/2018 (davve.ath)
+    # Need to override super method, otherwise user id is null
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class PEImplementationViewSet(viewsets.ModelViewSet):
