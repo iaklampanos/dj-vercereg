@@ -16,7 +16,10 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 class SeparatedValuesField(models.TextField):
-  __metaclass__ = models.SubfieldBase
+  # Pip package update 12/10/2018 (davve.ath) 
+  # SubfieldBase is deprecated
+
+  #  __metaclass__ = models.SubfieldBase
 
   def __init__(self, *args, **kwargs):
     self.token = kwargs.pop('token', ':')

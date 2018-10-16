@@ -57,4 +57,5 @@ target/
 fabfile.py
 
 local_settings.py
+docker-compose.yml
 

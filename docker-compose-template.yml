@@ -1,0 +1,31 @@
+version: "2"
+
+services:
+  mysqldb:
+      image: mysql:8.0
+      container_name: dj-reg-db
+      environment:
+          - MYSQL_DATABASE=dj_vercereg
+          - MYSQL_USER=root
+          - MYSQL_ROOT_PASSWORD=root
+      ports:
+          - "3306:3306"
+      networks:
+      - registrynet
+      logging:
+          driver: none
+
+  dj-reg:
+      image: dj-vercereg
+      container_name: dj-reg
+      ports:
+          - "8000:8000"
+      networks:
+      - registrynet
+      depends_on: 
+      - mysqldb
+
+networks:
+  registrynet:
+      driver: bridge
+

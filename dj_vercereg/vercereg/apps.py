@@ -1,5 +1,10 @@
 from django.apps import AppConfig
-import watson
+
+# Pip package update 12/10/2018 (davve.ath) 
+#  import watson
+
+from watson import search as watson
+
 
 class VerceRegConfig(AppConfig):
     name = 'vercereg'

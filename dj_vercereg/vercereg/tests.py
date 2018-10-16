@@ -246,6 +246,13 @@ class WorkspaceTestCase(TestCase):
   def test_workspace_cloning(self):
     w = Workspace.objects.get(name='bob_wspc')
     cloner = WorkspaceCloner(w, 'clone', self.bob)
+
+    # Pip package update 12/10/2018 (davve.ath)
+    # Create dummy request object to bypass error
+    factory = RequestFactory()
+    request = factory.get('/custer/details')
+    cloner.context = {'request': request}
+
     cw = cloner.clone()
 
     # Compare counts of workspace items

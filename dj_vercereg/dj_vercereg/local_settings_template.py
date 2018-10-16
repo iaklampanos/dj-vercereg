@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-# local_settings.py 
+# local_settings.py
 # Contains local configuration parameters. local_settings.py is in .gitignore and should not be revision-controlled, as it's site-specific.
 
 DEBUG = True
@@ -28,7 +28,7 @@ DATABASES = {
         'NAME': 'dj_vercereg',
         'USER': 'root',
         'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'HOST': 'dj-reg-db',
+        'PORT': '3306'
     }
 }

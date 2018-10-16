@@ -31,6 +31,10 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 import watson
 
+# Pip package update 12/10/2018 (davve.ath) 
+# Refactored package names
+from reversion.admin import VersionAdmin
+from watson.admin import SearchAdmin
 
 class PEImplInLine(admin.StackedInline):
     model = PEImplementation
@@ -67,7 +71,10 @@ class ConnectionInLine(admin.TabularInline):
     model = Connection
     extra = 1
 
-class PESigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+# Pip package update 12/10/2018 (davve.ath) 
+#  class PESigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+
+class PESigAdmin(VersionAdmin, GuardedModelAdmin, SearchAdmin):
                  # admin.ModelAdmin):
     list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
     inlines = [ConnectionInLine, PEImplInLine,]
@@ -78,20 +85,33 @@ class PESigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
     #   request._obj_ = obj
     #   return super(PESigAdmin, self).get_form(request, obj, **kwargs)
 
-class LiteralSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+# Pip package update 12/10/2018 (davve.ath) 
+#  class LiteralSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+
+class LiteralSigAdmin(VersionAdmin, GuardedModelAdmin, SearchAdmin):
     list_display = ('workspace', 'pckg', 'name', 'user', 'description', 'value')
     search_fields = ('name', 'description', 'value')
 
-class FunctionSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+# Pip package update 12/10/2018 (davve.ath) 
+#  class FunctionSigAdmin(reversion.VersionAdmin, GuardedModelAdmin, watson.SearchAdmin):
+
+class FunctionSigAdmin(VersionAdmin, GuardedModelAdmin, SearchAdmin):
                        # admin.ModelAdmin):
     list_display = ('workspace', 'pckg', 'name', 'user') #, 'implementation_set')
     inlines = [FnImplInLine, ]
     search_fields = ('description', 'name',)
 
-class PEImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
+
+# Pip package update 12/10/2018 (davve.ath) 
+#  class PEImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
+
+class PEImplementationAdmin(VersionAdmin, admin.ModelAdmin):
     list_display = ('parent_sig', 'description', 'short_code')
 
-class FnImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
+# Pip package update 12/10/2018 (davve.ath) 
+#  class FnImplementationAdmin(reversion.VersionAdmin, admin.ModelAdmin):
+
+class FnImplementationAdmin(VersionAdmin, admin.ModelAdmin):
     list_display = ('parent_sig', 'description', 'short_code')
 
 class PESigsInLine(admin.TabularInline):
@@ -102,9 +122,14 @@ class FunctionSigsInLine(admin.TabularInline):
     model = FunctionSig
     extra = 1
 
-class WorkspaceAdmin(reversion.VersionAdmin,
+# Pip package update 12/10/2018 (davve.ath) 
+#  class WorkspaceAdmin(reversion.VersionAdmin,
+                     #  GuardedModelAdmin,
+                     #  watson.SearchAdmin):
+
+class WorkspaceAdmin(VersionAdmin,
                      GuardedModelAdmin,
-                     watson.SearchAdmin):
+                     SearchAdmin):
     list_display = ('name', 'description', 'owner', )
     search_fields = ('name', 'description',)
     # inlines = [PESigsInLine, FunctionSigsInLine]
